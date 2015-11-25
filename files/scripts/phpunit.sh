@@ -4,74 +4,92 @@
 #set -e
 
 # Following params are needed, don't change
-SHARED_DIR=/root
-if [ ! -d "/shared" ]; then
-  SHARED_DIR=/root
-else
-  SHARED_DIR=/shared
-fi
-
 RUNNING_TEST='phpunit'
 
 # Dependencies.
-. /scripts/lib.sh
+SCRIPT_LIB_PATH=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
+if [ -f "${SCRIPT_LIB_PATH}/lib.sh" ]; then
+    . ${SCRIPT_LIB_PATH}/lib.sh
+else
+    . /scripts/lib.sh
+fi
 
 ################## Functions #####################
 
 # Usage o/p
 function usage(){
 cat << EOF
-################################ Usage #######################################
-#                                                                            #
-#                             Run Phpunit                                    #
-#                                                                            #
-##############################################################################
-# docker run --rm -v /shared:/shared rajeshtaneja/moodle /scripts/phpunit.sh #
-#   --git : git Repository (Default is moodle integration)                   #
-#   --remote: git remote (Default is integration)                            #
-#   --branch : Branch to use (Default is master)                             #
-#   --dbtype/dbname/dbhost/dbuser/dbpass : Database details                  #
-#   --phpunitdbprefix : phpunit database perfix (default p_)                 #
-#   --filter/test : Filter to use or test file to execute                    #
-#   --stoponfail: Stop on fail                                               #
-#                                                                            #
-##############################################################################
+######################################## Usage ###############################################
+#                                                                                            #
+#                                      Run Phpunit                                           #
+#                                                                                            #
+##############################################################################################
+# docker run --rm --user=moodle -v /MOODLE_PATH:/moodle rajeshtaneja/php:7.0 /phpunit        #
+#   --dbtype/dbname/dbhost/dbuser/dbpass : Database details                                  #
+#   --phpunitdbprefix (optional): phpunit database perfix (default p_)                       #
+#   --filter/test (optional): Filter to use or test file to execute                          #
+#   --stoponfail; (optional) Stop on fail                                                    #
+#   --git : (Optional) git Repository                                                        #
+#   --remote : (Optional) git remote (Default is integration)                                #
+#   --branch : (Optional) Branch to use (Default is master)                                  #
+#                                                                                            #
+##############################################################################################
 EOF
     exit 0
 }
 
-# Check if required params are set
-function check_required_params(){
-    # DBHOST should be set.
-    if [[ ${DBHOST} = "localhost" ]]; then
-        echo "Local database (postgres) is used for testing..."
-        /etc/init.d/postgresql restart
-        DBHOST=localhost
+#################################################
+# Set enviornment to run phpunit
+#################################################
+function set_phpunit_run_env() {
+    # Load final variables.
+    MOODLE_VERSION=$(grep "\$branch" ${MOODLE_DIR}/version.php | sed "s/';.*//" | sed "s/^\$.*'//")
+
+    # Moodle data dir to create.
+    MOODLE_DATA_BASE_DIR=${SHARED_DIR}/moodledata/${MOODLE_VERSION}/${DBTYPE}
+    MOODLE_DATA_DIR=${MOODLE_DATA_BASE_DIR}/data
+    MOODLE_PHPUNIT_DATA_DIR=${MOODLE_DATA_BASE_DIR}/phpunit_data
+    MOODLE_BEHAT_DATA_DIR=${MOODLE_DATA_BASE_DIR}/behat_data
+
+    # Create data dir if not present. Create it one by one.
+    if [ ! -d "${SHARED_DIR}" ]; then
+        sudo mkdir -p ${SHARED_DIR}
+        sudo chmod 777 ${SHARED_DIR}
     fi
-    # Check if git and other commands work.
-    check_cmds
-}
-# Checkout proper git branch
-function checkout_git_branch(){
-    whereami="${PWD}"
-    cd $MOODLE_DIR
-    checkout_branch $GITREPOSITORY $GITREMOTE $GITBRANCH
-    cd ${whereami}
-}
 
-# Create directories if not present.
-function create_dirs(){
-    mkdir -p $MOODLE_PHPUNIT_DATA_DIR
-    chmod 777 $MOODLE_PHPUNIT_DATA_DIR
+    # Create data dir if not present. Create it one by one.
+    if [ ! -d "${SHARED_DIR}/moodledata" ]; then
+        sudo mkdir ${SHARED_DIR}/moodledata
+        sudo chmod 777 ${SHARED_DIR}/moodledata
+    fi
+    if [ ! -d "${SHARED_DIR}/moodledata/${MOODLE_VERSION}" ]; then
+        mkdir ${SHARED_DIR}/moodledata/${MOODLE_VERSION}
+        chmod 777 ${SHARED_DIR}/moodledata/${MOODLE_VERSION}
+    fi
+    if [ ! -d "${SHARED_DIR}/moodledata/${MOODLE_VERSION}/${DBTYPE}" ]; then
+        mkdir ${SHARED_DIR}/moodledata/${MOODLE_VERSION}/${DBTYPE}
+        chmod 777 -R ${SHARED_DIR}/moodledata/${MOODLE_VERSION}/${DBTYPE}
+    fi
+    if [ ! -d "$MOODLE_DATA_DIR" ]; then
+        mkdir $MOODLE_BEHAT_DATA_DIR
+        chmod 777 -R $MOODLE_DATA_DIR
+    fi
+    if [ ! -d "$MOODLE_PHPUNIT_DATA_DIR" ]; then
+        mkdir $MOODLE_PHPUNIT_DATA_DIR
+        chmod 777 -R $MOODLE_PHPUNIT_DATA_DIR
+    fi
 
-    mkdir -p $MOODLE_DATA_DIR
-    chmod 777 $MOODLE_DATA_DIR
+    # Behat config file to use.
+    if [ "$MOODLE_VERSION" -ge "31" ]; then
+        BEHAT_CONFIG_FILE=${HOMEDIR}config/config.php.behat3.template
+    fi
 }
 
 # echo build details
 function echo_build_details() {
     echo "###########################################"
-    echo "## Phpunit build with:"
+    echo "#       Phpunit on: ${PHPVERSION}         "
+    echo "###########################################"
     echo "## Git Repository: ${GITREPOSITORY}"
     echo "## Git Branch: ${GITBRANCH}"
     echo "## DB Host: ${DBHOST}"
@@ -82,7 +100,7 @@ function echo_build_details() {
     if [[ -n ${PHPUNIT_TEST} ]]; then
         echo "## Test: ${PHPUNIT_TEST}"
     fi
-    echo "## IP: $(ifconfig eth0 | awk '/inet addr/{print substr($2,6)}')"
+    echo "## $1"
     echo "###########################################"
 }
 
@@ -96,11 +114,13 @@ function setup_phpunit(){
         curl -s https://getcomposer.org/installer | php
     fi
 
-    php composer.phar install --prefer-source
+    php composer.phar install --prefer-dist --no-interaction
 
-    set_mssql
+    # No need to drop site, init will do the job if needed.
+    if [ -n "$DROP_SITE" ]; then
+        php admin/tool/phpunit/cli/util.php --drop
+    fi
 
-    php admin/tool/phpunit/cli/util.php --drop
     php admin/tool/phpunit/cli/init.php
     cd ${whereami}
 }
@@ -111,99 +131,42 @@ function run_phpunit(){
     whereami="${PWD}"
     cd $MOODLE_DIR
     CMD="vendor/bin/phpunit $PHPUNIT_FILTER $PHPUNIT_TEST $STOP_ON_FAIL"
+    log "$CMD"
     eval $CMD
     exitcode=${PIPESTATUS[0]}
     exit $exitcode
 }
 ######################################################
+
 # Get user options.
-OPTS=`getopt -o t::f::h --long git::,branch::,dbhost::,dbtype::,dbname::,dbuser::,dbpass::,dbprefix::,dbport::,phpunitdbprefix::,filter::,test::,help,stoponfail -- "$@"`
-if [ $? != 0 ]
-then
-    echo "Give proper option"
-    usage
-    exit 1
-fi
+get_user_options "$@"
 
-eval set -- "$OPTS"
-
-while true ; do
-    case "$1" in
-        -h|--help) usage; shift ;;
-        --stoponfail) STOP_ON_FAIL='--stop-on-failure'; shift ;;
-        --git)
-            case "$2" in
-                "") GITREPOSITORY=${GITREPOSITORY} ; shift 2 ;;
-                *) GITREPOSITORY=$2 ; shift 2 ;;
-            esac ;;
-        --remote)
-            case "$2" in
-                "") GITREMOTE=${GITREMOTE} ; shift 2 ;;
-                *) GITREMOTE=$2 ; shift 2 ;;
-            esac ;;
-        --branch)
-            case "$2" in
-                "") GITBRANCH=${GITBRANCH} ; shift 2 ;;
-                *) GITBRANCH=$2 ; shift 2 ;;
-            esac ;;
-        --dbhost)
-            case "$2" in
-                "") DBHOST=${DBHOST} ; shift 2 ;;
-                *) DBHOST=$2 ; shift 2 ;;
-            esac ;;
-        --dbtype)
-            case "$2" in
-                "") DBTYPE=${DBTYPE} ; shift 2 ;;
-                *) DBTYPE=$2 ; shift 2 ;;
-            esac ;;
-        --dbname)
-            case "$2" in
-                "") DBNAME=${DBNAME} ; shift 2 ;;
-                *) DBNAME=$2 ; shift 2 ;;
-            esac ;;
-        --dbuser)
-            case "$2" in
-                "") DBUSER=${DBUSER} ; shift 2 ;;
-                *) DBUSER=$2 ; shift 2 ;;
-            esac ;;
-        --dbpass)
-            case "$2" in
-                "") DBPASS=${DBPASS} ; shift 2 ;;
-                *) DBPASS=$2 ; shift 2 ;;
-            esac ;;
-        --dbprefix)
-            case "$2" in
-                "") DBPREFIX=${DBPREFIX} ; shift 2 ;;
-                *) DBPREFIX=$2 ; shift 2 ;;
-            esac ;;
-        --dbport)
-            case "$2" in
-                "") DBPORT=${DBPORT} ; shift 2 ;;
-                *) DBPORT=$2 ; shift 2 ;;
-            esac ;;
-        --phpunitdbprefix)
-            case "$2" in
-                "") PHPUNIT_DB_PREFIX=${PHPUNIT_DB_PREFIX} ; shift 2 ;;
-                *) PHPUNIT_DB_PREFIX=$2 ; shift 2 ;;
-            esac ;;
-        -t|--test)
-            case "$2" in
-                "") PHPUNIT_TEST="" ; shift 2 ;;
-                *) PHPUNIT_TEST=" \"$2\"" ; shift 2 ;;
-            esac ;;
-        -f|--filter)
-            case "$2" in
-                "") PHPUNIT_FILTER=${BEHAT_FEATURE} ; shift 2 ;;
-                *) PHPUNIT_FILTER="--filter=\"$2\"" ; shift 2 ;;
-            esac ;;
-        --) shift; break;;
-        *) echo "Check options...." ; usage; exit 1 ;;
-    esac
-done
-
+# Check if required params are set.
 check_required_params
+
+# Checkout git branch.
 checkout_git_branch
+
+# Set db changes if needbe.
+set_db
+
+# Set env for phpunit.
+set_phpunit_run_env
+
+# Set moodle config.
 set_moodle_config
-echo_build_details
+
+# Show user details about build.
+echo_build_details "Setup phpunit..."
+
+# Setup phpunit.
 setup_phpunit
-run_phpunit
+
+# If only setup is set then don't run phpunit.
+if [ -z "$ONLY_SETUP" ]; then
+    # Show user details about build.
+    echo_build_details "Running phpunit..."
+
+    # Run phpunit.
+    run_phpunit
+fi

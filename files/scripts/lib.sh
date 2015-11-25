@@ -5,21 +5,29 @@
 SCRIPTS_DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 CONFIG_DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )/../config
 PERMISSIONS=775
-
+DOCKERIP=$(ip addr | grep global | awk '{print substr($2,1,length($2)-3)}')
+PHPVERSION=$(php -v | grep cli | awk '{print $1" " substr($2,1,6)}')
 
 ## Default params releated to docker container.
 HOMEDIR=/
 WWWDIR=/var/www/html
-MOODLE_DIR=$WWWDIR/moodle
+MOODLE_DIR_ORG=/moodle
+MOODLE_DIR=/var/www/html/moodle
 BEHAT_CONFIG_FILE=${HOMEDIR}config/config.php.template
-MOODLE_DATA_DIR=/moodledata/data
-MOODLE_PHPUNIT_DATA_DIR=/moodledata/phpunit_data
-MOODLE_BEHAT_DATA_DIR=/moodledata/behat_data
+SHARED_DIR=/shared
 
-RERUN_FILE="${HOMEDIR}$BRANCH-rerunlist"
-# Directories shared with host for saving faildump and timing.
-MOODLE_FAIL_DUMP_DIR=${SHARED_DIR}/${GITBRANCH}/${BEHAT_PROFILE}_${BEHAT_PROCESS}
-BEHAT_TIMING_FILE=${SHARED_DIR}/${GITBRANCH}/${BEHAT_PROFILE}_${BEHAT_PROCESS}/timing.json
+SCRIPT_LIB_PATH=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
+if [ -f "${SCRIPT_LIB_PATH}/runlib.sh" ]; then
+    . ${SCRIPT_LIB_PATH}/runlib.sh
+else
+    . /scripts/runlib.sh
+fi
+
+#if [ ! -d "$MOODLE_DIR" ]; then
+#    sudo mkdir -p $MOODLE_DIR
+#    sudo chmod 777 $MOODLE_DIR
+#    sudo mount -t aufs -o br=${MOODLE_DIR}=rw:${MOODLE_DIR_ORG}=ro none ${MOODLE_DIR}
+#fi
 
 ################################################
 # Checks that last command was successfully executed
@@ -47,19 +55,6 @@ function throw_error() {
 # Set default variables if not set
 ################################################
 function set_default_variables() {
-    # Git repo to use.
-    if [[ -z ${GITREPOSITORY} ]]; then
-        GITREPOSITORY=git://git.moodle.org/integration.git
-    fi
-    if [[ -z ${GITREMOTE} ]]; then
-        GITREMOTE=integration
-    fi
-    if [[ -z ${GITBRANCH} ]]; then
-        GITBRANCH=master
-    fi
-    if [[ -z ${DBHOST} ]]; then
-        DBHOST=localhost
-    fi
     if [[ -z ${DBTYPE} ]]; then
         DBTYPE=pgsql
     fi
@@ -85,31 +80,40 @@ function set_default_variables() {
         BEHAT_DB_PREFIX="b_"
     fi
     if [[ -z ${BEHAT_PROFILE} ]]; then
-        BEHAT_PROFILE=default
+        BEHAT_PROFILE=firefox
     fi
-    if [[ -z ${BEHAT_PROCESS} ]]; then
-        BEHAT_PROCESS="1" # Process number
+    if [[ -z ${BEHAT_RUN} ]]; then
+        BEHAT_RUN="0" # Process number
     fi
-    if [[ -z ${BEHAT_PROCESSES} ]]; then
-        BEHAT_PROCESSES="1" # Total number of processes
+    if [[ -z ${BEHAT_TOTAL_RUNS} ]]; then
+        BEHAT_TOTAL_RUNS="1" # Total number of processes
     fi
     if [[ -z ${SELENIUM_URL} ]]; then
-        SELENIUM_URL=localhost:4444
+        if [[ -n ${SELENIUM_DOCKER_PORT_4444_TCP_ADDR} ]]; then
+            SELENIUM_URL=${SELENIUM_DOCKER_PORT_4444_TCP_ADDR}:4444
+        fi
     fi
     if [[ -z ${PHANTOMJS_URL} ]]; then
-        PHANTOMJS_URL=localhost:4443
+        if [[ -n ${PHANTOMJS_DOCKER_PORT_4444_TCP_ADDR} ]]; then
+            PHANTOMJS_URL=${PHANTOMJS_DOCKER_PORT_4444_TCP_ADDR}:4443
+        fi
     fi
     if [[ -z ${SHARED_DIR} ]]; then
         SHARED_DIR=/shared
+
     fi
 }
 
 ################################################
 # Setup mssql
 ################################################
-function set_mssql() {
-    if [[ "${DBTYPE}" = "mssql" ]]; then
-        sed -i "s/host = .*/host = ${DBHOST}/g" /etc/freetds/freetds.conf
+function set_db() {
+    if [ "${DBTYPE}" == "mssql" ]; then
+        sudo sed -i "s/host = .*/host = ${DBHOST}/g" /etc/freetds/freetds.conf
+    fi
+
+    if [ "${DBTYPE}" == "mysql" ]; then
+        DBTYPE=mysqli
     fi
 }
 
@@ -166,6 +170,136 @@ function check_cmds() {
         throw_error 'Ensure $curlcmd'$genericstr
 }
 
+# Check if required params are set
+function check_required_params() {
+    # Moodle dir should be mapped.
+    if [ ! -d "$MOODLE_DIR" ] && [ ! -d "$MOODLE_DIR_ORG" ]; then
+        echo "Moodle dir is not found at $MOODLE_DIR or $MOODLE_DIR_ORG"
+        usage 1
+    fi
+
+    # DBHOST should be set.
+    if [[ -n ${DB_PORT_5432_TCP_ADDR} ]]; then
+        DBHOST=$DB_PORT_5432_TCP_ADDR
+        DBNAME=$DB_ENV_POSTGRES_USER
+        DBUSER=$DB_ENV_POSTGRES_USER
+        DBPASS=$DB_ENV_POSTGRES_PASSWORD
+    elif [[ -n ${DB_PORT_3306_TCP_ADDR} ]]; then
+        DBHOST=$DB_PORT_3306_TCP_ADDR
+        DBNAME=$DB_ENV_MYSQL_DATABASE
+        DBUSER=$DB_ENV_MYSQL_USER
+        DBPASS=$DB_ENV_MYSQL_PASSWORD
+    elif [[ -z "$DBHOST" ]]; then
+        echo "DBHOST is not set."
+        usage 1
+    fi
+
+    # Ensure selenium or phantomjs url are there.
+    if [ "$TEST_TO_EXECUTE" == "behat" ]; then
+        if [ "$BEHAT_PROFILE" == "phantomjs" ] && [ -z "$PHANTOMJS_URL" ]; then
+            echo "Phantomjs server is not found"
+            usage 1
+        elif [ -z "$SELENIUM_URL" ]; then
+            echo "Selenium server is not found"
+            usage 1
+        fi
+    fi
+
+    # Check if git and other commands work.
+    check_cmds
+}
+
+# This is first thing after getting user input to set moodle directory in docker instance and get git repo.
+set_moodle_dir_and_branch() {
+    # Unfortunately aufs/overlayfs doesn't work well in docker. So use copy.
+    if [ ! -d "$MOODLE_DIR" ]; then
+        if [ "$(ls -A $MOODLE_DIR_ORG)" ]; then
+           sudo chmod 777 $WWWDIR
+           cp -r ${MOODLE_DIR_ORG} ${MOODLE_DIR}
+           sudo chmod 777 $MOODLE_DIR
+        else
+            echo "Moodle directory is not mapped to container at /moodle or /var/www/html/moodle"
+            exit 1
+        fi
+    fi
+
+    if [[ -z "$GITBRANCH" ]]; then
+        whereami="${PWD}"
+        cd $MOODLE_DIR
+        LOCAL_BRANCH=`git name-rev --name-only HEAD | sed 's/.*\///g'`
+        GIT_CURRENT_BRANCH=$LOCAL_BRANCH
+        cd $whereami
+        # Load final variables.
+        RERUN_FILE="$HOMEDIR${GIT_CURRENT_BRANCH}-rerunlist"
+        # Directories shared with host for saving faildump and timing.
+        MOODLE_DUMP_DIR=${SHARED_DIR}/${GIT_CURRENT_BRANCH}/${BEHAT_PROFILE}
+        MOODLE_FAIL_DUMP_DIR=${SHARED_DIR}/${GIT_CURRENT_BRANCH}/${BEHAT_PROFILE}/run_${BEHAT_RUN}
+        BEHAT_TIMING_FILE=${MOODLE_DUMP_DIR}/timing.json
+    else
+        # Load final variables.
+        RERUN_FILE="$HOMEDIR${GITBRANCH}-rerunlist"
+        # Directories shared with host for saving faildump and timing.
+        MOODLE_DUMP_DIR=${SHARED_DIR}/${GITBRANCH}/${BEHAT_PROFILE}
+        MOODLE_FAIL_DUMP_DIR=${SHARED_DIR}/${GITBRANCH}/${BEHAT_PROFILE}/run_${BEHAT_RUN}
+        BEHAT_TIMING_FILE=${MOODLE_DUMP_DIR}/timing.json
+    fi
+}
+
+# Checkout proper git branch
+function checkout_git_branch() {
+    whereami="${PWD}"
+
+    # set proper moodle directory and git.
+    set_moodle_dir_and_branch
+
+    cd $MOODLE_DIR
+    skip=0
+
+    # Get current branch details.
+    LOCAL_BRANCH=`git name-rev --name-only HEAD`
+    if [ "$LOCAL_BRANCH" = "master" ]; then
+        TRACKING_REMOTE="origin"
+    else
+        TRACKING_REMOTE=`git config branch.$LOCAL_BRANCH.remote`
+    fi
+    if [ -z "$TRACKING_REMOTE" ]; then
+        TRACKING_REMOTE='origin'
+        REMOTE_URL=`git config remote.origin.url`
+    else
+        REMOTE_URL=`git config remote.$TRACKING_REMOTE.url`
+    fi
+
+    # If no repository defined then don't checkout.
+    if [[ -z "$GITREPOSITORY" ]]; then
+        GITREPOSITORY=$REMOTE_URL
+        skip=$((skip+1))
+    fi
+    if [[ -z "$GITBRANCH" ]]; then
+        GITBRANCH=`git name-rev --name-only HEAD | sed 's/.*\///g'`
+        skip=$((skip+1))
+    fi
+
+    if [[ -z "$GITREMOTE" ]]; then
+        GITREMOTE=$TRACKING_REMOTE
+        skip=$((skip+1))
+    fi
+
+    # If no repo/branch/remote given then skip checkout.
+    if [ "$skip" -eq 3 ]; then
+        cd ${whereami}
+        return 0
+    fi
+
+    checkout_branch $GITREPOSITORY $GITREMOTE $GITBRANCH
+    cd ${whereami}
+}
+
+# Start selenium and apache.
+function start_apache() {
+  # Restart apache server to ensure it is running.
+  sudo /etc/init.d/apache2 restart
+}
+
 ################################################
 # Checks out the specified branch codebase for the specified repository
 #
@@ -190,19 +324,19 @@ function checkout_branch() {
         local remoteinfo="$( git remote show "$2" -n | head -n 3 )"
         if [[ ! "$remoteinfo" == *$1* ]]; then
             git remote rm $2 || \
-                throw_error "$1 remote value you provide can not be removed. Check webserver_config.properties.dist"
+                throw_error "$1 remote value you provide can not be removed."
             git remote add $2 $1 || \
-                throw_error "$1 remote value you provided can not be added as $2. Check webserver_config.properties.dist"
+                throw_error "$1 remote value you provided can not be added as $2."
         fi
     # Add it if it is not there.
     else
         git remote add $2 $1 || \
-            throw_error "$1 remote can not be added as $2. Check webserver_config.properties.dist"
+            throw_error "$1 remote can not be added as $2."
     fi
 
     # Fetching from the repo.
     git fetch $2 --quiet || \
-        throw_error "$2 remote can not be fetched. Check webserver_config.properties.dist"
+        throw_error "$2 remote can not be fetched. Check $1 is valid"
 
     # Checking if it is a branch or a hash.
     local isareference="$( git show-ref | grep "refs/remotes/$2/$3$" | wc -l )"
@@ -211,12 +345,12 @@ function checkout_branch() {
         # Checkout the last version of the branch.
         # Reset to avoid conflicts if there are git history changes.
         git checkout -B $3 $2/$3 --quiet || \
-            throw_error "The '$3' tag or branch you provided does not exist or it is not set. Check webserver_config.properties.dist"
+            throw_error "The '$3' tag or branch you provided does not exist or it is not set."
 
     else
         # Just checkout the hash and let if fail if it is incorrect.
         git checkout $3 --quiet || \
-            throw_error "The '$3' hash you provided does not exist or it is not set. Check webserver_config.properties.dist"
+            throw_error "The '$3' hash you provided does not exist or it is not set."
 
     fi
 }
@@ -227,13 +361,14 @@ function checkout_branch() {
 ################################################
 function set_moodle_config() {
     if [[ "${DBTYPE}" == "oci" ]]; then
-        echo "Using xe database for oracle"
-        DBNAME=xe
-        PHPUNIT_DB_PREFIX="p${str: -1}"
-        BEHAT_DB_PREFIX="b${str: -1}"
+        if [[ -z ${PHPUNIT_DB_PREFIX} ]]; then
+            echo "Using xe database for oracle"
+            DBNAME=xe
+            PHPUNIT_DB_PREFIX="p${str: -1}"
+            BEHAT_DB_PREFIX="b${str: -1}"
+        fi
     fi
 
-    DOCKERIP=$(ifconfig eth0 | awk '/inet addr/{print substr($2,6)}')
     # If behat running then set ip to
     if [[ -z ${RUNNING_TEST} ]]; then
         DOCKERIPWEB=$DOCKERIP
@@ -274,7 +409,36 @@ function set_moodle_config() {
 
   # Save the config.php into destination.
   echo "${text}" > $MOODLE_DIR/config.php
-  create_dirs
+  # remove_vendordir
+}
+
+function remove_vendordir() {
+    if [[ -d $MOODLE_DIR"/vendor" ]]; then
+        rm -r $MOODLE_DIR"/vendor"
+    fi
+}
+
+function create_course_and_users() {
+    # If files are present then we have already executed this. don't continue.
+    if [ -n "$NO_COURSE" ]; then
+        return 0
+    fi
+
+    local whereami="${PWD}"
+    cd $MOODLE_DIR
+    cp /opt/enrol.php $MOODLE_DIR/
+    cp /opt/restore.php $MOODLE_DIR/
+    cp /opt/users.php $MOODLE_DIR/
+
+    log "Creating course..."
+    php restore.php "/opt/AllFeaturesBackup.mbz" > /dev/null 2>&1
+
+    log "Creating users..."
+    php users.php > /dev/null 2>&1
+
+    log "Enrolling users..."
+    php enrol.php > /dev/null 2>&1
+    cd $whereami
 }
 
 set_default_variables

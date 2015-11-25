@@ -12,12 +12,20 @@ ENV TERM linux
 ARG GITREPOSITORY=git://git.moodle.org/integration.git
 ARG GITREMOTE=integration
 ARG GITBRANCH=master
+ARG IGNORECLONE=1
 ENV GITREPOSITORY ${GITREPOSITORY}
 ENV GITREMOTE ${GITREMOTE}
 ENV GITBRANCH ${GITBRANCH}
+ENV IGNORECLONE ${IGNORECLONE}
 
 
 MAINTAINER Rajesh Taneja <rajesh.taneja@gmail.com>
+
+RUN useradd -d /home/jenkins -m jenkins \
+    && useradd -d /home/rajesh -m rajesh \
+    && useradd -d /home/moodle -m moodle \
+	&& usermod -a -G moodle rajesh \
+	&& usermod -a -G moodle jenkins
 
 # Install apache, php and git
 RUN apt-get update \
@@ -56,9 +64,17 @@ RUN apt-get update \
     php5-pgsql \
     php5-sybase \
     php5-xmlrpc \
+    php5-memcache \
+    php5-memcached \
+    libpcre3-dev \
+    libxml2-dev \
+    libcurl4-openssl-dev \
     firefox \
     google-chrome-stable \
     xvfb \
+    vim \
+    sudo \
+    unoconv \
  && apt-get clean \
  && rm -rf /var/lib/apt/lists/*
 
@@ -75,11 +91,14 @@ RUN unzip /tmp/instantclient-basic-linux.x64-11.2.0.4.0.zip -d /opt/oracle \
  && cd /opt/oracle/instantclient_11_2 \
  && ln -s libocci.so.11.1 libocci.so \
  && ln -s libclntsh.so.11.1 libclntsh.so \
- && pecl install oci8 </tmp/anwser-install-oci8.txt \
+ && pecl install oci8-1.4.10 </tmp/anwser-install-oci8.txt \
  && echo "extension=oci8.so" >> /etc/php5/apache2/php.ini \
  && echo "oci8.statement_cache_size=0" >> /etc/php5/apache2/php.ini \
  && echo "extension=oci8.so" >> /etc/php5/cli/php.ini \
  && echo "oci8.statement_cache_size=0" >> /etc/php5/cli/php.ini \
+ && printf "\n" | pecl install solr \
+ && echo 'extension=solr.so' > /etc/php5/apache2/conf.d/solr.ini \
+ && echo 'extension=solr.so' > /etc/php5/cli/conf.d/solr.ini
  && echo "ServerName localhost" >> /etc/apache2/apache2.conf \
  && locale-gen "en_AU.UTF-8" \
  && dpkg-reconfigure locales \
@@ -88,34 +107,52 @@ RUN unzip /tmp/instantclient-basic-linux.x64-11.2.0.4.0.zip -d /opt/oracle \
  && export LC_ALL="en_AU.UTF-8" \
  && apachectl restart
 
+# Limit memory usage by docker for stability.
+CMD ulimit -n 1536
+
 WORKDIR /
 
 # COPY SCRIPTS and config.
-RUN mkdir /moodle \
- && mkdir /moodledata \
+RUN mkdir /moodledata \
  && mkdir /scripts \
- && mkdir /config \
- && mkdir /behatdrivers
+ && mkdir /config
 
 COPY files/scripts/behat.sh /scripts/behat.sh
 COPY files/scripts/phpunit.sh /scripts/phpunit.sh
 COPY files/scripts/lib.sh /scripts/lib.sh
-COPY files/scripts/docker_init.sh /scripts/docker_init.sh
+COPY files/scripts/runlib.sh /scripts/runlib.sh
+COPY files/scripts/moodle.sh /scripts/moodle.sh
 COPY files/scripts/init.sh /scripts/init.sh
 COPY files/config/config.php.template /config/config.php.template
-COPY files/behatdrivers/selenium-server-2.47.1.jar /behatdrivers/selenium-server-2.47.1.jar
-COPY files/behatdrivers/chromedriver behatdrivers/chromedriver
-COPY files/behatdrivers/phantomjs behatdrivers/phantomjs
+COPY files/config/config.php.behat3.template /config/config.php.behat3.template
+
+# Create a course and enrol users.
+COPY files/backup/AllFeaturesBackup.mbz /opt/AllFeaturesBackup.mbz
+COPY files/backup/enrol.php /opt/enrol.php
+COPY files/backup/restore.php /opt/restore.php
+COPY files/backup/users.php /opt/users.php
 
 RUN chmod 775 /scripts/behat.sh \
  && chmod 775 /scripts/phpunit.sh \
- && chmod 775 /scripts/docker_init.sh \
- && chmod 775 /scripts/init.sh
-RUN /etc/init.d/postgresql start \
- && /scripts/docker_init.sh
+ && chmod 775 /scripts/moodle.sh \
+ && chmod 775 /scripts/init.sh \
+ && chmod 777 /moodledata \
+ && mkdir /shared \
+ && chmod 777 /shared
+
+RUN ln -s /scripts/behat.sh /behat
+RUN ln -s /scripts/phpunit.sh /phpunit
+RUN ln -s /scripts/moodle.sh /moodle_site
+RUN ln -s /scripts/init.sh /init
+
+RUN echo '%moodle  ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 
 # Create volumes to share faildump.
 VOLUME ["/shared"]
 
 # Expose port on which web server is accessible.
 EXPOSE 80
+
+ENTRYPOINT ["/init"]
+
+STOPSIGNAL 9
