@@ -1,44 +1,75 @@
 # Moodle application with behat and phpunit.
 ![logo](https://moodle.org/theme/image.php/moodleorgcleaned_moodleorg/theme_moodleorgcleaned/1447866970/moodle-logo)
 
-### Build docker image (If you don't use moodlehq/moodle application)
+## Initial setup
+Initial setup needed on host machine.
+
+### Step 1: Install [docker]
+* [Install docker binary]
+
+### Step 2: Docker image
+* **Build your own image**
 ```sh
-cd {PATH_TO_THIS_REPO}
+git clone https://rajeshtaneja.github.com/docker.git
+cd docker
 docker build -t {username}/moodle:master \
     --build-arg GITREPOSITORY=git://git.moodle.org/integration.git \
     --build-arg GITREMOTE=integration \
     --build-arg GITBRANCH=master \
     .
 ```
-> you can use --env-file=env.list rather then passing individual environment variable.
+> use --build-arg IGNORECLONE=1, if you don't want to have a local copy of moodle in docker image and map it while running.
 
-### Moodle web application
+* **Download [official] image**
+```sh
+    docker pull moodlehq/moodle:master
+```
+
+## Run application
+
+### 1. Moodle web application
 Run Moodle [official] application 
+* **Interactive**
 ```sh
-docker run -ti -v /host/shared:/shared moodlehq/moodle:master /scripts/init.php
-```
-> username/password is admin/moodle
+docker run --name moodle -ti moodlehq/moodle:master /scripts/init.php --keepalive
 
-Run your local moodle application.
-```sh
-docker run -ti -v /host/shared:/shared {username}/moodle:master /scripts/init.php
+or with your own copy of moodle
+
+docker run --name moodle -v {PATH_TO_MOODLE_DIR_ON_HOST}/moodle:/var/www/html/moodle -ti moodlehq/moodle:master /scripts/init.php --keepalive
 ```
+* **Demonised**
+```sh
+docker run --name moodle -d moodlehq/moodle:master /scripts/init.php
+or
+./start-docker.sh --name='moodle' --moodlepath='/var/www/html/moodle'
+```
+
+> **Get ip for moodle instance via**
+```
+docker exec -ti moodle bash
+or
+docker logs moodle
+or
+docker logs -f moodle
+```
+
+> username/password is admin/moodle
 > Access moodle instance with http://{docker container ip}/moodle
 
-### Run behat using docker image
+### 2. Run behat using docker image
 ```sh
 docker run -t --rm -v /host/shared:/shared moodlehq/moodle:master /scripts/behat.sh
 ```
 > /host/shared folder is on host machine which will contain behat output and faildump.
 
-### Run specific run (2) run out of some (5) parallel runs.
+#### 2.a. Run specific run (2) run out of some (5) parallel runs.
 ```sh
 docker run -t --rm -v /host/shared:/shared moodlehq/moodle:master /scripts/behat.sh -r2 -j5
 ```
 
-### Run specific run (2) run out of some (5) parallel runs with chrome profile
+#### 2.b. Run specific run (2) run out of some (5) parallel runs with chrome profile
 ```sh
-docker run -t --rm -v /host/shared:/shared moodlehq/moodle:master /scripts/behat.sh -r2 -j5 --profie=chrome
+docker run -t --rm -v /host/shared:/shared moodlehq/moodle:master /scripts/behat.sh -r2 -j5 --profie='chrome'
 ```
 **Following profiles are supported**
   * firefox / default
@@ -46,22 +77,22 @@ docker run -t --rm -v /host/shared:/shared moodlehq/moodle:master /scripts/behat
   * phantomjs
   * phantomjs-selenium
 
-### Run specific run (2) run out of some (5) parallel runs with specif tags
+#### 2.c. Run specific run (2) run out of some (5) parallel runs with specif tags
 ```sh
-docker run -t --rm -v /host/shared:/shared moodlehq/moodle:master /scripts/behat.sh -r2 -j5 --tags=@javascript
+docker run -t --rm -v /host/shared:/shared moodlehq/moodle:master /scripts/behat.sh -r2 -j5 --tags='@javascript'
 ```
 
-### Run behat with specific feature name
+#### 2.d. Run behat with specific feature name
 ```sh
 docker run -t --rm -v /host/shared:/shared moodlehq/moodle:master /scripts/behat.sh -r2 -j5 --name="This is test"
 ```
 
-### Run php unit test
+### 3. Run php unit test
 ```sh
 docker run -t --rm -v /host/shared:/shared moodlehq/moodle:master /scripts/phpunit.sh"
 ```
 
-#### Specify database and git branch with following options.
+### Specify database and git branch with following options.
 * --git=git://git.moodle.org/moodle.git
 * --branch=MOODLE_30_STABLE
 * --remote=stable
@@ -84,3 +115,7 @@ docker run -t --rm -v /host/shared:/shared moodlehq/moodle:master /scripts/phpun
 * With optional arguments like --package-name-prefix='com.bahmanm'. Note that the argument can be passed only using =.
 
 [official]: <https://hub.docker.com/u/moodlehq/>
+[docker]: <https://www.docker.com/>
+[Install docker binary]: <http://docs.docker.com/engine/installation/>
+[Install docker Machine]: <http://docs.docker.com/machine/install-machine/>
+[Install docker compose]: <http://docs.docker.com/compose/install/>

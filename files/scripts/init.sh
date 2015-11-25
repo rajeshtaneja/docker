@@ -1,15 +1,8 @@
-#!/bin/bash
+sudo apt-get install python-pip libmysqlclient-dev libpq-dev python-dev
 # This script is for docker input to customise and run behat.
 
 # Exit on errors.
 #set -e
-
-# Shared directory to use.
-if [ ! -d "/shared" ]; then
-  SHARED_DIR=/root
-else
-  SHARED_DIR=/shared
-fi
 
 # Dependencies.
 . /scripts/lib.sh
@@ -34,32 +27,6 @@ cat << EOF
 ####################################################################################
 EOF
     exit 0
-}
-
-# Check if required params are set
-function check_required_params() {
-  # DBHOST should be set.
-  if [[ ${DBHOST} = 'localhost' ]]; then
-    echo "Local database (postgres) is used for testing..."
-    /etc/init.d/postgresql restart
-    DBHOST=localhost
-  fi
-  # Check if git and other commands work.
-  check_cmds
-}
-
-# Checkout proper git branch
-function checkout_git_branch() {
-   whereami="${PWD}"
-   cd $MOODLE_DIR
-   checkout_branch $GITREPOSITORY $GITREMOTE $GITBRANCH
-   cd ${whereami}
-}
-
-# Start selenium and apache.
-function start_apache() {
-  # Restart apache server to ensure it is running.
-  /etc/init.d/apache2 restart
 }
 
 # Create directories if not present.
@@ -95,81 +62,35 @@ function install_moodle() {
 }
 
 ######################################################
+# Get user options.
+get_user_options "$@"
 
-# get user options.
-OPTS=`getopt -o j::r::p::t::f::n::h --long git::,remote::,branch::,dbhost::,dbtype::,dbname::,dbuser::,dbpass::,dbprefix::,dbport::,profile::,behatdbprefix::,seleniumurl::,phantomjsurl::,process::,processes::,tags::,feature::,name::,help,stoponfail -- "$@"`
-if [ $? != 0 ]
-then
-    echo "Give proper option"
-    usage
-    exit 1
-fi
-
-eval set -- "$OPTS"
-
-while true ; do
-    case "$1" in
-        -h|--help) usage; shift ;;
-        --git)
-            case "$2" in
-                "") GITREPOSITORY=${GITREPOSITORY} ; shift 2 ;;
-                *) GITREPOSITORY=$2 ; shift 2 ;;
-            esac ;;
-        --branch)
-            case "$2" in
-                "") GITBRANCH=${GITBRANCH} ; shift 2 ;;
-                *) GITBRANCH=$2 ; shift 2 ;;
-            esac ;;
-        --remote)
-            case "$2" in
-                "") GITREMOTE=${GITREMOTE} ; shift 2 ;;
-                *) GITREMOTE=$2 ; shift 2 ;;
-            esac ;;
-        --dbhost)
-            case "$2" in
-                "") DBHOST=${DBHOST} ; shift 2 ;;
-                *) DBHOST=$2 ; shift 2 ;;
-            esac ;;
-        --dbtype)
-            case "$2" in
-                "") DBTYPE=${DBTYPE} ; shift 2 ;;
-                *) DBTYPE=$2 ; shift 2 ;;
-            esac ;;
-        --dbname)
-            case "$2" in
-                "") DBNAME=${DBNAME} ; shift 2 ;;
-                *) DBNAME=$2 ; shift 2 ;;
-            esac ;;
-        --dbuser)
-            case "$2" in
-                "") DBUSER=${DBUSER} ; shift 2 ;;
-                *) DBUSER=$2 ; shift 2 ;;
-            esac ;;
-        --dbpass)
-            case "$2" in
-                "") DBPASS=${DBPASS} ; shift 2 ;;
-                *) DBPASS=$2 ; shift 2 ;;
-            esac ;;
-        --dbprefix)
-            case "$2" in
-                "") DBPREFIX=${DBPREFIX} ; shift 2 ;;
-                *) DBPREFIX=$2 ; shift 2 ;;
-            esac ;;
-        --dbport)
-            case "$2" in
-                "") DBPORT=${DBPORT} ; shift 2 ;;
-                *) DBPORT=$2 ; shift 2 ;;
-            esac ;;
-        --) shift; break;;
-        *) echo "Check options" ; usage ; exit 1 ;;
-    esac
-done
-
+# Check if required params are set.
 check_required_params
+
+# Checkout git branch.
 checkout_git_branch
+
+# Start apache.
 start_apache
+
+# Set moodle config.
 set_moodle_config
+
+# Show user details about build.
 echo_build_details
+
+# Install moodle.
 install_moodle
-# Keep service running.
-bash
+
+echo "Admin account: admin/moodle"
+
+# If passed keep alive then it's interactive mode.
+if [[ -z ${KEEPALIVE} ]]; then
+    echo "# To access Moodle: http://${DOCKERIPWEB}"
+    echo "# user/password: admin/moodle"
+    echo "# To enter shell in moodle container shell: docker exec -it {container name} bash"
+    tail -F /var/log/apache2/*
+else
+    bash
+fi

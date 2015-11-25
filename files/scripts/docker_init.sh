@@ -4,23 +4,18 @@
 # Exit on errors.
 set -e
 
-# Shared directory to use.
-if [ ! -d "/shared" ]; then
-  SHARED_DIR=/root
-else
-  SHARED_DIR=/shared
-fi
-
 # Dependencies.
 . /scripts/lib.sh
 
 whereami="${PWD}"
 # Create clone of moodle to ship with.
-git clone $GITREPOSITORY /var/www/html/moodle
-cd /var/www/html/moodle
-checkout_branch $GITREPOSITORY $GITREMOTE $GITBRANCH
-curl -s https://getcomposer.org/installer | php
-php composer.phar install --prefer-source
+if [[ ${IGNORECLONE} -eq 0 ]]; then
+    git clone $GITREPOSITORY /var/www/html/moodle
+    cd /var/www/html/moodle
+    checkout_branch $GITREPOSITORY $GITREMOTE $GITBRANCH
+    curl -s https://getcomposer.org/installer | php
+    php composer.phar install --prefer-source
+fi
 
 # Create postgres user and db and stop it.
 sudo -u postgres psql -c "ALTER USER postgres WITH PASSWORD 'moodle';" \

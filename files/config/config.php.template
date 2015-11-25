@@ -53,7 +53,7 @@ $CFG->behat_prefix = '%%BehatDbPrefix%%';
 
 $CFG->behat_screenshots_path = '%%FailDumpDir%%/screenshots';
 $CFG->behat_faildump_path = '%%FailDumpDir%%/screenshots';
-define ('BEHAT_FEATURE_TIMING', '%%BehatTimingFile%%');
+define ('BEHAT_FEATURE_TIMING_FILE', '%%BehatTimingFile%%');
 
 $CFG->behat_config = array(
     'default' => array(

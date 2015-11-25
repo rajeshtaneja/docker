@@ -15,11 +15,14 @@ BEHAT_CONFIG_FILE=${HOMEDIR}config/config.php.template
 MOODLE_DATA_DIR=/moodledata/data
 MOODLE_PHPUNIT_DATA_DIR=/moodledata/phpunit_data
 MOODLE_BEHAT_DATA_DIR=/moodledata/behat_data
+SHARED_DIR=/shared
 
-RERUN_FILE="${HOMEDIR}$BRANCH-rerunlist"
+# Load final variables.
+RERUN_FILE="$HOMEDIR${GITBRANCH}-rerunlist"
 # Directories shared with host for saving faildump and timing.
-MOODLE_FAIL_DUMP_DIR=${SHARED_DIR}/${GITBRANCH}/${BEHAT_PROFILE}_${BEHAT_PROCESS}
-BEHAT_TIMING_FILE=${SHARED_DIR}/${GITBRANCH}/${BEHAT_PROFILE}_${BEHAT_PROCESS}/timing.json
+MOODLE_DUMP_DIR=${SHARED_DIR}/${GITBRANCH}/${BEHAT_PROFILE}
+MOODLE_FAIL_DUMP_DIR=${SHARED_DIR}/${GITBRANCH}/${BEHAT_PROFILE}/run_${BEHAT_PROCESS}
+BEHAT_TIMING_FILE=${MOODLE_DUMP_DIR}/timing.json
 
 ################################################
 # Checks that last command was successfully executed
@@ -105,6 +108,140 @@ function set_default_variables() {
 }
 
 ################################################
+# Get user options.
+################################################
+function get_user_options() {
+    # get user options.
+    OPTS=`getopt -o j::r::p::t::f::n::h --long git::,remote::,branch::,dbhost::,dbtype::,dbname::,dbuser::,dbpass::,dbprefix::,dbport::,profile::,behatdbprefix::,seleniumurl::,phantomjsurl::,process::,processes::,tags::,feature::,name::,phpunitdbprefix::,filter::,test::,help,stoponfail -- "$@"`
+    if [ $? != 0 ]
+    then
+        echo "Give proper option"
+        usage
+        exit 1
+    fi
+
+    eval set -- "$OPTS"
+
+    while true ; do
+        case "$1" in
+            -h|--help) usage; shift ;;
+            --git)
+                case "$2" in
+                    "") GITREPOSITORY=${GITREPOSITORY} ; shift 2 ;;
+                    *) GITREPOSITORY=$2 ; shift 2 ;;
+                esac ;;
+            --branch)
+                case "$2" in
+                    "") GITBRANCH=${GITBRANCH} ; shift 2 ;;
+                    *) GITBRANCH=$2 ; shift 2 ;;
+                esac ;;
+            --remote)
+                case "$2" in
+                    "") GITREMOTE=${GITREMOTE} ; shift 2 ;;
+                    *) GITREMOTE=$2 ; shift 2 ;;
+                esac ;;
+            --dbhost)
+                case "$2" in
+                    "") DBHOST=${DBHOST} ; shift 2 ;;
+                    *) DBHOST=$2 ; shift 2 ;;
+                esac ;;
+            --dbtype)
+                case "$2" in
+                    "") DBTYPE=${DBTYPE} ; shift 2 ;;
+                    *) DBTYPE=$2 ; shift 2 ;;
+                esac ;;
+            --dbname)
+                case "$2" in
+                    "") DBNAME=${DBNAME} ; shift 2 ;;
+                    *) DBNAME=$2 ; shift 2 ;;
+                esac ;;
+            --dbuser)
+                case "$2" in
+                    "") DBUSER=${DBUSER} ; shift 2 ;;
+                    *) DBUSER=$2 ; shift 2 ;;
+                esac ;;
+            --dbpass)
+                case "$2" in
+                    "") DBPASS=${DBPASS} ; shift 2 ;;
+                    *) DBPASS=$2 ; shift 2 ;;
+                esac ;;
+            --dbprefix)
+                case "$2" in
+                    "") DBPREFIX=${DBPREFIX} ; shift 2 ;;
+                    *) DBPREFIX=$2 ; shift 2 ;;
+                esac ;;
+            --dbport)
+                case "$2" in
+                    "") DBPORT=${DBPORT} ; shift 2 ;;
+                    *) DBPORT=$2 ; shift 2 ;;
+                esac ;;
+            -p|--profile)
+               case "$2" in
+                    "") BEHAT_PROFILE=default ; shift 2 ;;
+                    *) BEHAT_PROFILE=$2 ; shift 2 ;;
+                esac ;;
+            --behatdbprefix)
+                case "$2" in
+                    "") BEHAT_DB_PREFIX="b_" ; shift 2 ;;
+                    *) BEHAT_DB_PREFIX=$2 ; shift 2 ;;
+                esac ;;
+            --seleniumurl)
+                case "$2" in
+                    "") SELENIUM_URL=${SELENIUM_URL} ; shift 2 ;;
+                    *) SELENIUM_URL=$2 ; shift 2 ;;
+                esac ;;
+            --phantomjsurl)
+                case "$2" in
+                    "") PHANTOMJS_URL=${PHANTOMJS_URL} ; shift 2 ;;
+                    *) PHANTOMJS_URL=$2 ; shift 2 ;;
+                esac ;;
+            -r|--process)
+                case "$2" in
+                    "") BEHAT_PROCESS=${BEHAT_PROCESS} ; shift 2 ;;
+                    *) BEHAT_PROCESS=$2 ; shift 2 ;;
+                esac ;;
+            -j|--processes)
+                case "$2" in
+                    "") BEHAT_PROCESSES=${BEHAT_PROCESSES} ; shift 2 ;;
+                    *) BEHAT_PROCESSES=$2 ; shift 2 ;;
+                esac ;;
+            -t|--tags)
+                case "$2" in
+                    "") BEHAT_TAGS="" ; shift 2 ;;
+                    *) BEHAT_TAGS="--tags=\"$2\"" ; shift 2 ;;
+                esac ;;
+            -f|--feature)
+                case "$2" in
+                    *) BEHAT_FEATURE=$2 ; shift 2 ;;
+                esac ;;
+            -n|--name)
+                case "$2" in
+                    "") BEHAT_NAME="" ; shift 2 ;;
+                    *) BEHAT_NAME="--name=\"$2\"" ; shift 2 ;;
+                esac ;;
+            --phpunitdbprefix)
+                case "$2" in
+                    "") PHPUNIT_DB_PREFIX=${PHPUNIT_DB_PREFIX} ; shift 2 ;;
+                    *) PHPUNIT_DB_PREFIX=$2 ; shift 2 ;;
+                esac ;;
+            --test)
+                case "$2" in
+                    "") PHPUNIT_TEST="" ; shift 2 ;;
+                    *) PHPUNIT_TEST=" \"$2\"" ; shift 2 ;;
+                esac ;;
+            --filter)
+                case "$2" in
+                    "") PHPUNIT_FILTER=${BEHAT_FEATURE} ; shift 2 ;;
+                    *) PHPUNIT_FILTER="--filter=\"$2\"" ; shift 2 ;;
+                esac ;;
+            --stoponfail) $STOP_ON_FAIL='--stop-on-failure'; shift ;;
+            --) shift; break;;
+            *) echo "Check options" ; usage ; exit 1 ;;
+        esac
+    done
+}
+
+################################################
 # Setup mssql
 ################################################
 function set_mssql() {
@@ -164,6 +301,37 @@ function check_cmds() {
 
     curl -V > /dev/null || \
         throw_error 'Ensure $curlcmd'$genericstr
+}
+
+# Check if required params are set
+function check_required_params() {
+    # DBHOST should be set.
+    if [[ -n ${DB_PORT_5432_TCP_ADDR} ]]; then
+        DBHOST=$DB_PORT_5432_TCP_ADDR
+        DBNAME=$DB_ENV_POSTGRES_USER
+        DBUSER=$DB_ENV_POSTGRES_USER
+        DBPASS=$DB_ENV_POSTGRES_PASSWORD
+    elif [[ ${DBHOST} = 'localhost' ]]; then
+        echo "Local database (postgres) is used for testing..."
+        /etc/init.d/postgresql restart
+        DBHOST=localhost
+    fi
+    # Check if git and other commands work.
+    check_cmds
+}
+
+# Checkout proper git branch
+function checkout_git_branch() {
+   whereami="${PWD}"
+   cd $MOODLE_DIR
+   checkout_branch $GITREPOSITORY $GITREMOTE $GITBRANCH
+   cd ${whereami}
+}
+
+# Start selenium and apache.
+function start_apache() {
+  # Restart apache server to ensure it is running.
+  /etc/init.d/apache2 restart
 }
 
 ################################################

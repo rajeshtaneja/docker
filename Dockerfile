@@ -12,9 +12,11 @@ ENV TERM linux
 ARG GITREPOSITORY=git://git.moodle.org/integration.git
 ARG GITREMOTE=integration
 ARG GITBRANCH=master
+ARG IGNORECLONE=0
 ENV GITREPOSITORY ${GITREPOSITORY}
 ENV GITREMOTE ${GITREMOTE}
 ENV GITBRANCH ${GITBRANCH}
+ENV IGNORECLONE ${IGNORECLONE}
 
 
 MAINTAINER Rajesh Taneja <rajesh.taneja@gmail.com>
@@ -56,6 +58,7 @@ RUN apt-get update \
     php5-pgsql \
     php5-sybase \
     php5-xmlrpc \
+    supervisor \
     firefox \
     google-chrome-stable \
     xvfb \
