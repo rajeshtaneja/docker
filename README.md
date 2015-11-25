@@ -32,18 +32,18 @@ Run Moodle [official] application
 * **Interactive**
 ### 1. Run behat using docker image
 ```sh
-./run.sh --moodlepath=/var/www/html/m --execute=moodle --shareddir=/host/shared --user=moodle --phpversion=7.0
+./run.sh --moodlepath=/var/www/html/m --execute=moodle --shareddir=/host/shared --user=moodle --phpversion=5.4
 ```
 > /host/shared folder is on host machine which will contain behat faildump and moodledata.
 
 #### 2.a. Run specific run (2) run out of some (4) parallel runs.
 ```sh
-./run.sh --moodlepath=/var/www/html/m --execute=behat --shareddir=/host/shared --user=moodle --phpversion=7.0 --run=2 --totalruns=4
+./run.sh --moodlepath=/var/www/html/m --execute=behat --shareddir=/host/shared --user=moodle --phpversion=5.4 --run=2 --totalruns=4
 ```
 
 #### 2.b. Run specific run (2) run out of some (4) parallel runs with chrome profile
 ```sh
-./run.sh --moodlepath=/var/www/html/m --execute=behat --shareddir=/host/shared --user=moodle --phpversion=7.0 --run=2 --totalruns=4 --profile=chrome
+./run.sh --moodlepath=/var/www/html/m --execute=behat --shareddir=/host/shared --user=moodle --phpversion=5.4 --run=2 --totalruns=4 --profile=chrome
 ```
 
 **Following profiles are supported**
@@ -54,17 +54,17 @@ Run Moodle [official] application
 
 #### 2.c. 4 parallel runs with specific tags
 ```sh
-./run.sh --moodlepath=/var/www/html/m --execute=behat --shareddir=/host/shared --user=moodle --phpversion=7.0 --run=0 --totalruns=4 --tags='@javascript'
+./run.sh --moodlepath=/var/www/html/m --execute=behat --shareddir=/host/shared --user=moodle --phpversion=5.4 --run=0 --totalruns=4 --tags='@javascript'
 ```
 
 #### 2.d. Run behat with specific feature name
 ```sh
-./run.sh --moodlepath=/var/www/html/m --execute=behat --shareddir=/host/shared --user=moodle --phpversion=7.0 --run=1 --totalruns=1 --name="This is test"
+./run.sh --moodlepath=/var/www/html/m --execute=behat --shareddir=/host/shared --user=moodle --phpversion=5.4 --run=1 --totalruns=1 --name="This is test"
 ```
 
 ### 3. Run php unit test
 ```sh
-./run.sh --moodlepath=/var/www/html/m --execute=phpunit --shareddir=/host/shared --user=moodle --phpversion=7.0
+./run.sh --moodlepath=/var/www/html/m --execute=phpunit --shareddir=/host/shared --user=moodle --phpversion=5.4
 ```
 
 ### You can use following database and git branch options:

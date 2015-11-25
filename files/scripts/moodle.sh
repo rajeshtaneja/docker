@@ -22,7 +22,7 @@ cat << EOF
 #                                      Install moodle instance                                       #
 #                                                                                                    #
 ######################################################################################################
-# docker run --rm -v /MOODLE_ON_HOST:/moodle -v /shared:/shared rajeshtaneja/php:7.0 /moodle_site    #
+# docker run --rm -v /MOODLE_ON_HOST:/moodle -v /shared:/shared rajeshtaneja/php:5.4 /moodle_site    #
 #   --dbtype/dbname/dbhost/dbuser/dbpass : Database details                                          #
 #   --git : (optional) git Repository                                                                #
 #   --remote: (optional) git remote                                                                  #

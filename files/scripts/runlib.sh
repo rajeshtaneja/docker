@@ -1,6 +1,6 @@
 #!/bin/bash
 ############ Specific functions for running whole test #############
-# Default php version is 7.0 if not found.
+# Default php version is 5.4 if not found.
 
 function get_user_options() {
     # get user options.

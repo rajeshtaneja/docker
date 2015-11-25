@@ -22,7 +22,7 @@ cat << EOF
 #                                          Run behat                                             #
 #                                                                                                #
 ##################################################################################################
-# docker run --rm -v PATH_TO_MOODLE:/moodle -v /shared:/shared rajeshtaneja/php:7.0 /behat       #
+# docker run --rm -v PATH_TO_MOODLE:/moodle -v /shared:/shared rajeshtaneja/php:5.4 /behat       #
 #   --dbtype/dbname/dbhost/dbuser/dbpass : Database details                                      #
 #   --behatdbprefix: Behat db prefix (default is b_)                                             #
 #   --profile/tags/feature/name : Behat specific options                                         #

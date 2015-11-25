@@ -5,7 +5,7 @@ ROOT_DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 
 # Default params which can be overridden by options.
 DEFAULT_SELENIUM_DOCKER="rajeshtaneja/selenium:2.53.0"
-DEFAULT_DOCKER_PHP_VERSION="7.0"
+DEFAULT_DOCKER_PHP_VERSION="5.4"
 DB_DOCKER_TO_START_CMD='docker run -e POSTGRES_USER=moodle -e POSTGRES_PASSWORD=moodle -e POSTGRES_DB=moodle -d postgres'
 
 # Optional parameters if set here then don't need to pass via command line.

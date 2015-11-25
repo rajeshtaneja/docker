@@ -24,7 +24,7 @@ cat << EOF
 #                                      Run Phpunit                                           #
 #                                                                                            #
 ##############################################################################################
-# docker run --rm --user=moodle -v /MOODLE_PATH:/moodle rajeshtaneja/php:7.0 /phpunit        #
+# docker run --rm --user=moodle -v /MOODLE_PATH:/moodle rajeshtaneja/php:5.4.45 /phpunit     #
 #   --dbtype/dbname/dbhost/dbuser/dbpass : Database details                                  #
 #   --phpunitdbprefix (optional): phpunit database perfix (default p_)                       #
 #   --filter/test (optional): Filter to use or test file to execute                          #

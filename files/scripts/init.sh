@@ -17,7 +17,7 @@ cat << EOF
 #                               Moodle docker container                                    #
 #                                                                                          #
 ############################################################################################
-# docker run -ti --moodlepath='/PAT/TO/MOODLE/ON/HOST' rajeshtaneja/php:7.0                #
+# docker run -ti --moodlepath='/PATH/TO/MOODLE/ON/HOST' rajeshtaneja/php:5.4               #
 #   --execute: Test to execute. phpunit or behat or moodle                                 #
 #   --dbtype/dbname/dbhost/dbuser/dbpass : Database details                                #
 #   --git : (OPTIONAL) git Repository                                                      #

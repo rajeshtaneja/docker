@@ -7,17 +7,8 @@
 # Build arguments supported.
 #
 
-FROM ubuntu:trusty
+FROM ubuntu:precise
 ENV TERM linux
-ARG GITREPOSITORY=git://git.moodle.org/integration.git
-ARG GITREMOTE=integration
-ARG GITBRANCH=master
-ARG IGNORECLONE=1
-ENV GITREPOSITORY ${GITREPOSITORY}
-ENV GITREMOTE ${GITREMOTE}
-ENV GITBRANCH ${GITBRANCH}
-ENV IGNORECLONE ${IGNORECLONE}
-
 
 MAINTAINER Rajesh Taneja <rajesh.taneja@gmail.com>
 
@@ -27,24 +18,27 @@ RUN useradd -d /home/jenkins -m jenkins \
 	&& usermod -a -G moodle rajesh \
 	&& usermod -a -G moodle jenkins
 
-# Install apache, php and git
+RUN locale-gen en_US.UTF-8
+ENV LANG en_US.UTF-8
+ENV LANGUAGE en_US:en
+ENV LC_ALL en_US.UTF-8
+
+# Add php repo to use.
 RUN apt-get update \
- && apt-get install -y \
-    wget
-RUN wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
-RUN echo "deb http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list
-RUN apt-get update \
- && apt-get install -y \
+ && apt-get install -y python-software-properties \
+ && apt-add-repository ppa:ondrej/php5-oldstable
+RUN apt-get update
+
+# Install libraries.
+RUN apt-get install -y \
     build-essential \
     curl \
-    default-jdk \
     freetds-bin \
     freetds-common \
     git \
     ghostscript \
     libaio1 \
     odbcinst \
-    postgresql \
     postgresql-contrib \
     tdsodbc \
     unixodbc \
@@ -57,7 +51,6 @@ RUN apt-get update \
     php5-gd \
     php5-intl \
     php5-json \
-    php5-mongo \
     php5-mysql \
     php5-odbc \
     php-pear \
@@ -69,13 +62,15 @@ RUN apt-get update \
     libpcre3-dev \
     libxml2-dev \
     libcurl4-openssl-dev \
-    firefox \
-    google-chrome-stable \
-    xvfb \
     vim \
-    sudo \
-    unoconv \
- && apt-get clean \
+    sudo
+
+#COPY files/unoconv_0.7.deb /tmp/unoconv_0.7.deb
+#RUN apt-get -y remove unoconv
+#RUN apt-get install -f -y python3 python3-uno
+#RUN dpkg -i /tmp/unoconv_0.7.deb
+
+RUN apt-get clean \
  && rm -rf /var/lib/apt/lists/*
 
 # Replace original freetds.conf with our's, so we can update mssql server ip.
@@ -98,7 +93,7 @@ RUN unzip /tmp/instantclient-basic-linux.x64-11.2.0.4.0.zip -d /opt/oracle \
  && echo "oci8.statement_cache_size=0" >> /etc/php5/cli/php.ini \
  && printf "\n" | pecl install solr \
  && echo 'extension=solr.so' > /etc/php5/apache2/conf.d/solr.ini \
- && echo 'extension=solr.so' > /etc/php5/cli/conf.d/solr.ini
+ && echo 'extension=solr.so' > /etc/php5/cli/conf.d/solr.ini \
  && echo "ServerName localhost" >> /etc/apache2/apache2.conf \
  && locale-gen "en_AU.UTF-8" \
  && dpkg-reconfigure locales \
@@ -115,7 +110,10 @@ WORKDIR /
 # COPY SCRIPTS and config.
 RUN mkdir /moodledata \
  && mkdir /scripts \
- && mkdir /config
+ && mkdir /config \
+ && mkdir /var/www/html \
+ && chmod 777 /var/www/html \
+ && sed -i s#/var/www#/var/www/html#g /etc/apache2/sites-available/default
 
 COPY files/scripts/behat.sh /scripts/behat.sh
 COPY files/scripts/phpunit.sh /scripts/phpunit.sh
