@@ -107,13 +107,14 @@ COPY files/scripts/docker_init.sh /scripts/docker_init.sh
 COPY files/scripts/init.sh /scripts/init.sh
 COPY files/config/config.php.template /config/config.php.template
 COPY files/behatdrivers/selenium-server-2.47.1.jar /behatdrivers/selenium-server-2.47.1.jar
-COPY files/behatdrivers/chromedriver behatdrivers/chromedriver
-COPY files/behatdrivers/phantomjs behatdrivers/phantomjs
+COPY files/behatdrivers/chromedriver /behatdrivers/chromedriver
+COPY files/behatdrivers/phantomjs /behatdrivers/phantomjs
 
 RUN chmod 775 /scripts/behat.sh \
  && chmod 775 /scripts/phpunit.sh \
  && chmod 775 /scripts/docker_init.sh \
- && chmod 775 /scripts/init.sh
+ && chmod 775 /scripts/init.sh \
+ && ln -s /behatdrivers/phantomjs /bin/phantomjs
 RUN /etc/init.d/postgresql start \
  && /scripts/docker_init.sh
 
