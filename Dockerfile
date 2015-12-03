@@ -4,9 +4,6 @@
 #                      Version 0.0.1                         #
 ##############################################################
 
-# Build arguments supported.
-#
-
 FROM ubuntu:trusty
 ENV TERM linux
 ARG GITREPOSITORY=git://git.moodle.org/integration.git
@@ -91,34 +88,52 @@ RUN unzip /tmp/instantclient-basic-linux.x64-11.2.0.4.0.zip -d /opt/oracle \
  && export LC_ALL="en_AU.UTF-8" \
  && apachectl restart
 
+# Limit memory usage by docker for stability.
+CMD ulimit -n 1536
+
 WORKDIR /
 
 # COPY SCRIPTS and config.
-RUN mkdir /moodle \
- && mkdir /moodledata \
+RUN mkdir /moodledata \
  && mkdir /scripts \
- && mkdir /config \
- && mkdir /behatdrivers
+ && mkdir /config
 
 COPY files/scripts/behat.sh /scripts/behat.sh
 COPY files/scripts/phpunit.sh /scripts/phpunit.sh
 COPY files/scripts/lib.sh /scripts/lib.sh
-COPY files/scripts/docker_init.sh /scripts/docker_init.sh
+COPY files/scripts/runlib.sh /scripts/runlib.sh
+COPY files/scripts/moodle.sh /scripts/moodle.sh
 COPY files/scripts/init.sh /scripts/init.sh
 COPY files/config/config.php.template /config/config.php.template
-COPY files/behatdrivers/selenium-server-2.47.1.jar /behatdrivers/selenium-server-2.47.1.jar
-COPY files/behatdrivers/chromedriver behatdrivers/chromedriver
-COPY files/behatdrivers/phantomjs behatdrivers/phantomjs
+COPY files/config/config.php.behat3.template /config/config.php.behat3.template
+
+# Create a course and enrol users.
+COPY files/backup/AllFeaturesBackup.mbz /opt/AllFeaturesBackup.mbz
+COPY files/backup/enrol.php /opt/enrol.php
+COPY files/backup/restore.php /opt/restore.php
+COPY files/backup/users.php /opt/users.php
 
 RUN chmod 775 /scripts/behat.sh \
  && chmod 775 /scripts/phpunit.sh \
- && chmod 775 /scripts/docker_init.sh \
- && chmod 775 /scripts/init.sh
-RUN /etc/init.d/postgresql start \
- && /scripts/docker_init.sh
+ && chmod 775 /scripts/moodle.sh \
+ && chmod 775 /scripts/init.sh \
+ && chmod 777 /moodledata \
+ && mkdir /shared \
+ && chmod 777 /shared
+
+RUN ln -s /scripts/behat.sh /behat
+RUN ln -s /scripts/phpunit.sh /phpunit
+RUN ln -s /scripts/moodle.sh /moodle_site
+RUN ln -s /scripts/init.sh /init
+
+RUN echo '%moodle  ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 
 # Create volumes to share faildump.
 VOLUME ["/shared"]
 
 # Expose port on which web server is accessible.
 EXPOSE 80
+
+ENTRYPOINT ["/init"]
+
+STOPSIGNAL 9

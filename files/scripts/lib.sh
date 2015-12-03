@@ -88,7 +88,7 @@ function set_default_variables() {
         BEHAT_DB_PREFIX="b_"
     fi
     if [[ -z ${BEHAT_PROFILE} ]]; then
-        BEHAT_PROFILE=default
+        BEHAT_PROFILE=firefox
     fi
     if [[ -z ${BEHAT_PROCESS} ]]; then
         BEHAT_PROCESS="1" # Process number
@@ -104,6 +104,7 @@ function set_default_variables() {
     fi
     if [[ -z ${SHARED_DIR} ]]; then
         SHARED_DIR=/shared
+
     fi
 }
 
@@ -177,8 +178,14 @@ function get_user_options() {
                 esac ;;
             -p|--profile)
                case "$2" in
-                    "") BEHAT_PROFILE=default ; shift 2 ;;
-                    *) BEHAT_PROFILE=$2 ; shift 2 ;;
+                    "") BEHAT_PROFILE=firefox ; shift 2 ;;
+                    *) BEHAT_PROFILE=$2 ;
+                        if [[ ${BEHAT_PROFILE} = 'chrome' ]]; then
+                            # This is needed else chrome crashes, because shared memory is just 64MB.
+                            echo "Increasing shm for chrome"
+                            increase_shm
+                        fi
+                        shift 2 ;;
                 esac ;;
             --behatdbprefix)
                 case "$2" in
@@ -443,6 +450,12 @@ function set_moodle_config() {
   # Save the config.php into destination.
   echo "${text}" > $MOODLE_DIR/config.php
   create_dirs
+}
+
+
+function increase_shm() {
+    sudo umount /dev/shm
+    sudo mount -t tmpfs -o rw,nosuid,nodev,noexec,relatime,size=1024M tmpfs /dev/shm
 }
 
 set_default_variables
