@@ -38,7 +38,7 @@ or with your own copy of moodle
 docker run --name moodle -v {PATH_TO_MOODLE_DIR_ON_HOST}/moodle:/var/www/html/moodle -ti moodlehq/moodle:master /scripts/init.php --keepalive
 ```
 * **Demonised**
-```sh
+```shfiles/scripts/lib.sh
 docker run --name moodle -d moodlehq/moodle:master /scripts/init.php
 or
 ./start-docker.sh --name='moodle' --moodlepath='/var/www/html/moodle'
@@ -69,8 +69,11 @@ docker run -t --rm -v /host/shared:/shared moodlehq/moodle:master /scripts/behat
 
 #### 2.b. Run specific run (2) run out of some (5) parallel runs with chrome profile
 ```sh
-docker run -t --rm -v /host/shared:/shared moodlehq/moodle:master /scripts/behat.sh -r2 -j5 --profie='chrome'
+docker run -t --rm -v /host/shared:/shared moodlehq/moodle:master /scripts/behat.sh -r2 -j5 --profile='firefox'
 ```
+
+> for chrome profile, you should run docker with --privileged flag. 
+
 **Following profiles are supported**
   * firefox / default
   * chrome
