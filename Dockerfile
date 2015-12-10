@@ -91,6 +91,9 @@ RUN unzip /tmp/instantclient-basic-linux.x64-11.2.0.4.0.zip -d /opt/oracle \
  && export LC_ALL="en_AU.UTF-8" \
  && apachectl restart
 
+# Limit memory usage by docker for stability.
+CMD ulimit -n 1536
+
 WORKDIR /
 
 # COPY SCRIPTS and config.
