@@ -16,8 +16,10 @@ docker build -t {username}/moodle:master \
     --build-arg GITREPOSITORY=git://git.moodle.org/integration.git \
     --build-arg GITREMOTE=integration \
     --build-arg GITBRANCH=master \
-    .
+    --build-arg PHPVERSION=7.0.0 \
+   .
 ```
+> example: docker build --build-arg PHPVERSION=5.5.30 --build-arg GITBRANCH=MOODLE_29_STABLE -t moodle/php5.5.30:MOODLE_29_STABLE .
 > use --build-arg IGNORECLONE=1, if you don't want to have a local copy of moodle in docker image and map it while running.
 
 * **Download [official] image**

@@ -7,6 +7,14 @@ set -e
 # Dependencies.
 . /scripts/lib.sh
 
+PHPVERSION_INT=${PHPVERSION%.*}
+PHPVERSION_INT=${PHPVERSION_INT%.*}
+# Disable php5 module for apache.
+if [[ ${PHPVERSION_INT} = 7 ]]; then
+    a2dismod php5
+fi
+source /root/.phpbrew/bashrc && phpbrew switch php-${PHPVERSION}
+
 whereami="${PWD}"
 # Create clone of moodle to ship with.
 if [[ ${IGNORECLONE} -eq 0 ]]; then
@@ -22,6 +30,8 @@ sudo -u postgres psql -c "ALTER USER postgres WITH PASSWORD 'moodle';" \
  && sudo -u postgres createuser --superuser moodle \
  && sudo -u postgres psql -c "ALTER USER moodle WITH PASSWORD 'moodle';" \
  && sudo -u postgres psql -c "CREATE DATABASE moodle WITH OWNER moodle ENCODING 'UTF8' LC_COLLATE='en_AU.utf8' LC_CTYPE='en_AU.utf8' TEMPLATE=template0;" \
- && sudo /etc/init.d/postgresql stop
+ && /etc/init.d/postgresql stop \
+ && /etc/init.d/mysql stop \
+ && /etc/init.d/apache2 stop
 
 cd ${whereami}

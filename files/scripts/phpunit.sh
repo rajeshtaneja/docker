@@ -45,6 +45,7 @@ function create_dirs(){
 # echo build details
 function echo_build_details() {
     echo "###########################################"
+    echo "## $(php -v  | grep built:)"
     echo "## Phpunit build with:"
     echo "## Git Repository: ${GITREPOSITORY}"
     echo "## Git Branch: ${GITBRANCH}"
@@ -90,6 +91,8 @@ function run_phpunit(){
     exit $exitcode
 }
 ######################################################
+# Ensure we have php 7.0.0
+source /root/.phpbrew/bashrc && phpbrew switch php-${PHPVERSION}
 
 # Get user options.
 get_user_options "$@"

@@ -80,6 +80,7 @@ function create_dirs() {
 # echo build details
 function echo_build_details() {
     echo "###########################################"
+    echo "## $(php -v  | grep built:)"
     echo "## Behat build with:"
     echo "## Git Repository: ${GITREPOSITORY}"
     echo "## Git Branch: ${GITBRANCH}"
@@ -197,6 +198,8 @@ if [[ ! -d ${MOODLE_FAIL_DUMP_DIR}/screenshots ]]; then
     chmod 777 ${MOODLE_FAIL_DUMP_DIR}/screenshots
 fi
 
+# Ensure we have php 7.0.0
+source /root/.phpbrew/bashrc && phpbrew switch php-${PHPVERSION}
 
 # Check if required params are set.
 check_required_params
