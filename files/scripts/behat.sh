@@ -138,8 +138,6 @@ function set_behat_run_env() {
     fi
     if [ ! -d "${SHARED_DIR}/moodledata/${MOODLE_VERSION}/${DBTYPE}" ]; then
         mkdir ${SHARED_DIR}/moodledata/${MOODLE_VERSION}/${DBTYPE}
-        mkdir $MOODLE_DATA_DIR
-        mkdir $MOODLE_BEHAT_DATA_DIR
         chmod 777 -R ${SHARED_DIR}/moodledata/${MOODLE_VERSION}/${DBTYPE}
     fi
     if [ ! -d "$MOODLE_DATA_DIR" ]; then

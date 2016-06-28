@@ -71,7 +71,7 @@ function set_phpunit_run_env() {
         chmod 777 -R ${SHARED_DIR}/moodledata/${MOODLE_VERSION}/${DBTYPE}
     fi
     if [ ! -d "$MOODLE_DATA_DIR" ]; then
-        mkdir $MOODLE_BEHAT_DATA_DIR
+        mkdir $MOODLE_DATA_DIR
         chmod 777 -R $MOODLE_DATA_DIR
     fi
     if [ ! -d "$MOODLE_PHPUNIT_DATA_DIR" ]; then
