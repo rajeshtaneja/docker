@@ -92,15 +92,15 @@ function is_single_run() {
         SINGLE_PROCESS=1
     fi
 
-    if [ "$BEHAT_RUN"  -le 1 ] && [ $BEHAT_TOTAL_RUNS -le 1 ]; then
+    if [ "$BEHAT_RUN"  -le 1 ] && [ "$BEHAT_TOTAL_RUNS" -le 1 ]; then
         SINGLE_PROCESS=1
     fi
 
-    if [ -z "$BEHAT_RUN" ] || [ "$BEHAT_RUN" == "" ] || [ $BEHAT_RUN -eq 0 ] ; then
+    if [ -z "$BEHAT_RUN" ] || [ "$BEHAT_RUN" == "" ] || [ "$BEHAT_RUN" -eq 0 ] ; then
         if [ $BEHAT_TOTAL_RUNS -gt 1 ]; then
             SINGLE_PROCESS_WITH_MULTIPLE_RUNS=1
         fi
-    elif [ $BEHAT_TOTAL_RUNS -eq 0 ] && [ $BEHAT_RUN -ge 1 ]; then
+    elif [ $BEHAT_TOTAL_RUNS -eq 0 ] && [ "$BEHAT_RUN" -ge 1 ]; then
         SINGLE_PROCESS_WITH_MULTIPLE_RUNS=1
     fi
 
@@ -273,7 +273,7 @@ function run_behat() {
         FROMRUN="--fromrun=$BEHAT_RUN"
         TORUN="--torun=$BEHAT_RUN"
     fi
-    if [ -z "$SPECIFIED_RUN" ] || [ -n "$SINGLE_PROCESS" ]; then
+    if [ -n "$SPECIFIED_RUN" ] || [ -n "$SINGLE_PROCESS" ]; then
         RERUN_FILE_TO_USE="${RERUN_FILE}"
     else
         RERUN_FILE_TO_USE="${RERUN_FILE}{runprocess}"
@@ -347,11 +347,10 @@ function run_behat() {
             # If we are running 1 run single or specified then don't need to check for each run.
             if [ -n "$SPECIFIED_RUN" ] || [ -n "$SINGLE_PROCESS" ]; then
                 # If single process then no suffix needed.
+                thisrerunfile="${RERUN_FILE}.txt"
                 if [ -z "$SPECIFIED_RUN" ]; then
                     BEHAT_RUN=""
-                    thisrerunfile="${RERUN_FILE}.txt"
                 else
-                    thisrerunfile="${RERUN_FILE}${BEHAT_RUN}.txt"
                     if [ ! -L $MOODLE_DIR/behatrun${BEHAT_RUN} ]; then
                         ln -s $MOODLE_DIR $MOODLE_DIR/behatrun${BEHAT_RUN}
                     fi
