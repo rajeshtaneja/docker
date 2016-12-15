@@ -17,7 +17,6 @@
     - FailDumpDir
     - BehatTimingFile
     - SeleniumUrl
-    - PhantomjsUrl
 **/
 
 unset($CFG);
@@ -55,30 +54,44 @@ $CFG->behat_screenshots_path = '%%FailDumpDir%%/screenshots';
 $CFG->behat_faildump_path = '%%FailDumpDir%%/screenshots';
 define ('BEHAT_FEATURE_TIMING_FILE', '%%BehatTimingFile%%');
 
-$basicbehatprofiles=array(
+$urls = explode(',', '%%Seleniumurls%%');
+
+$basicbehatprofiles = array(
     'phantomjs' => array(
         'browser' => 'phantomjs',
         'tags' => '~@_file_upload&&~@_alert&&~@_bug_phantomjs',
-        'wd_host' => 'http://%%PhantomjsUrl%%/wd/hub',
     ),
     'phantomjs-selenium' => array(
         'browser' => 'phantomjs',
         'tags' => '~@_file_upload&&~@_alert&&~@_bug_phantomjs',
-        'wd_host' => 'http://%%SeleniumUrl%%/wd/hub',
     ),
     'chrome' => array(
         'browser' => 'chrome',
-        'wd_host' => 'http://%%SeleniumUrl%%/wd/hub',
     ),
     'firefox' => array(
         'browser' => 'firefox',
-        'wd_host' => 'http://%%SeleniumUrl%%/wd/hub',
     ),
     'default' => array(
         'browser' => 'firefox',
-        'wd_host' => 'http://%%SeleniumUrl%%/wd/hub',
     ),
 );
+
+
+// If only one selenium url passed, then set it as default profile url.
+if (count($urls) == 1) {
+    $basicbehatprofiles = array(
+        'default' => array(
+           'browser' => 'firefox',
+           'wd_host' => 'http://'.$urls[0].'/wd/hub'
+        )
+    );
+}
+
+$counter = 0;
+for ($i = %%fromrun%%; $i < %%totalrun%%; $i++) {
+    $CFG->behat_parallel_run[$i] = array ('wd_host' => 'http://'.$urls[$counter].'/wd/hub');
+    $counter++;
+}
 
 $noofprofilestocreate = 50;
 // Create multiple profiles, so they can be used in parallelrun --rerun

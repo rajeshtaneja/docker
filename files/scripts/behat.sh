@@ -25,7 +25,7 @@ cat << EOF
 # docker run --rm -v PATH_TO_MOODLE:/moodle -v /shared:/shared rajeshtaneja/php:7.0 /behat       #
 #   --dbtype/dbname/dbhost/dbuser/dbpass : Database details                                      #
 #   --behatdbprefix: Behat db prefix (default is b_)                                             #
-#   --profile/tags/feature/name : Behat specific options                                         #
+#   --profile/tags/feature/name/suite : Behat specific options                                   #
 #   --run/totalruns : Process to run out of how many processes                                   #
 #   --stoponfail: Stop on fail                                                                   #
 #   --git : (optional) git Repository                                                            #
@@ -36,27 +36,6 @@ cat << EOF
 ##################################################################################################
 EOF
     exit 0
-}
-
-# Start selenium and apache.
-function start_apache_selenium() {
-    start_apache
-
-    # Start local selenium if needed.
-    if [[ ${SELENIUM_URL} = 'localhost:4444' ]]; then
-        echo "Starting SeleniumServer at port: 4444"
-        xvfb-run -a java -jar ${HOMEDIR}behatdrivers/selenium-server-2.47.1.jar -port 4444 -Dwebdriver.chrome.driver=${HOMEDIR}behatdrivers/chromedriver > /dev/null 2>&1 &
-        sleep 5
-    fi
-
-    # Start local phantomjs instance if needed.
-    if [[ ${BEHAT_PROFILE} = 'phantomjs' ]]; then
-        if [[ ${PHANTOMJS_URL} = 'localhost:4443' ]]; then
-            echo "Starting PHANTOMJS at port: 4443"
-            ${HOMEDIR}behatdrivers/phantomjs --webdriver 4443 > /dev/null 2>&1 &
-            sleep 5
-        fi
-    fi
 }
 
 # echo build details
@@ -82,13 +61,16 @@ function echo_build_details() {
     if [[ -n ${BEHAT_FEATURE} ]]; then
         echo "## Behat feature: ${BEHAT_FEATURE}"
     fi
+    if [[ -n ${BEHAT_SUITE} ]]; then
+        echo "## Behat suite: ${BEHAT_SUITE}"
+    fi
     echo "## IP: ${DOCKERIP}"
     echo "###########################################"
 }
 
 
 function is_single_run() {
-    if [ -z "$BEHAT_TOTAL_RUNS" ] || [ "$BEHAT_TOTAL_RUNS" == "" ] || [ $BEHAT_TOTAL_RUNS -eq 1 ]; then
+    if [ -z "$BEHAT_TOTAL_RUNS" ] || [ "$BEHAT_TOTAL_RUNS" == "" ] || [ "$BEHAT_TOTAL_RUNS" -eq 1 ]; then
         SINGLE_PROCESS=1
     fi
 
@@ -97,14 +79,14 @@ function is_single_run() {
     fi
 
     if [ -z "$BEHAT_RUN" ] || [ "$BEHAT_RUN" == "" ] || [ "$BEHAT_RUN" -eq 0 ] ; then
-        if [ $BEHAT_TOTAL_RUNS -gt 1 ]; then
+        if [ "$BEHAT_TOTAL_RUNS" -gt 1 ]; then
             SINGLE_PROCESS_WITH_MULTIPLE_RUNS=1
         fi
-    elif [ $BEHAT_TOTAL_RUNS -eq 0 ] && [ "$BEHAT_RUN" -ge 1 ]; then
+    elif [ "$BEHAT_TOTAL_RUNS" -eq 0 ] && [ "$BEHAT_RUN" -ge 1 ]; then
         SINGLE_PROCESS_WITH_MULTIPLE_RUNS=1
     fi
 
-    if [ "$BEHAT_RUN"  -ge 1 ] && [ $BEHAT_TOTAL_RUNS -gt 1 ]; then
+    if [ "$BEHAT_RUN"  -ge 1 ] && [ "$BEHAT_TOTAL_RUNS" -gt 1 ]; then
         SPECIFIED_RUN=1
     fi
 }
@@ -117,7 +99,7 @@ function set_behat_run_env() {
     MOODLE_VERSION=$(grep "\$branch" ${MOODLE_DIR}/version.php | sed "s/';.*//" | sed "s/^\$.*'//")
 
     # Moodle data dir to create.
-    MOODLE_DATA_BASE_DIR=${SHARED_DIR}/moodledata/${MOODLE_VERSION}/${DBTYPE}
+    MOODLE_DATA_BASE_DIR=${SHARED_DATA_DIR}/moodledata/${MOODLE_VERSION}/${DBTYPE}
     MOODLE_FAILDUMP_BASE_DIR=${SHARED_DIR}/faildump
 
     MOODLE_DATA_DIR=${MOODLE_DATA_BASE_DIR}/data
@@ -126,19 +108,15 @@ function set_behat_run_env() {
     # Create data dir if not present. Create it one by one.
     if [ ! -d "${SHARED_DIR}" ]; then
         sudo mkdir -p ${SHARED_DIR}
-        sudo chmod 777 ${SHARED_DIR}
+        sudo chmod -R 777 ${SHARED_DIR}
     fi
-    if [ ! -d "${SHARED_DIR}/moodledata" ]; then
-        sudo mkdir ${SHARED_DIR}/moodledata
-        sudo chmod 777 ${SHARED_DIR}/moodledata
+    if [ ! -d "${SHARED_DATA_DIR}" ]; then
+        sudo mkdir -p ${SHARED_DATA_DIR}
+        sudo chmod -R 777 ${SHARED_DATA_DIR}
     fi
-    if [ ! -d "${SHARED_DIR}/moodledata/${MOODLE_VERSION}" ]; then
-        mkdir ${SHARED_DIR}/moodledata/${MOODLE_VERSION}
-        chmod 777 ${SHARED_DIR}/moodledata/${MOODLE_VERSION}
-    fi
-    if [ ! -d "${SHARED_DIR}/moodledata/${MOODLE_VERSION}/${DBTYPE}" ]; then
-        mkdir ${SHARED_DIR}/moodledata/${MOODLE_VERSION}/${DBTYPE}
-        chmod 777 -R ${SHARED_DIR}/moodledata/${MOODLE_VERSION}/${DBTYPE}
+    if [ ! -d "$MOODLE_DATA_BASE_DIR" ]; then
+        mkdir -p $MOODLE_DATA_BASE_DIR
+        chmod 777 -R $SHARED_DATA_DIR
     fi
     if [ ! -d "$MOODLE_DATA_DIR" ]; then
         mkdir $MOODLE_DATA_DIR
@@ -159,7 +137,7 @@ function set_behat_run_env() {
     fi
 
     # Behat config file to use.
-    if [ "$MOODLE_VERSION" -ge "31" ]; then
+    if [[ "$MOODLE_VERSION" -ge "31" ]]; then
         BEHAT_CONFIG_FILE=${HOMEDIR}config/config.php.behat3.template
     fi
 
@@ -183,7 +161,7 @@ function set_behat_run_env() {
         MOODLE_FAIL_DUMP_DIR=${MOODLE_DUMP_DIR}/run_${BEHAT_RUN}
     fi
 
-    if [ "$MOODLE_VERSION" -ge "31" ]; then
+    if [[ "$MOODLE_VERSION" -ge "31" ]]; then
         if [ -n "$SINGLE_PROCESS" ]; then
             BEHAT_FORMAT="--format=moodle_progress --out=std"
             BEHAT_OUTPUT="--format=pretty --out=${MOODLE_FAIL_DUMP_DIR}/pretty.txt"
@@ -230,7 +208,7 @@ function setup_behat() {
             echo " ** Droping all sites **"
         fi
         # Drop parallel sites.
-        php admin/tool/behat/cli/util.php --drop -j=100
+        php admin/tool/behat/cli/util.php --drop -j=10
         # Drop single site.
         php admin/tool/behat/cli/util.php --drop
     fi
@@ -249,6 +227,9 @@ function setup_behat() {
         show_error "Specified run '$BEHAT_RUN' and total runs '$BEHAT_TOTAL_RUNS' don't make sense"
     fi
 
+    if [ -n "$BEHAT_SUITE" ]; then
+        CMD="${CMD} -a=${BEHAT_SUITE}"
+    fi
     log "Initializing site with: $CMD"
     eval $CMD
     exitcode=${PIPESTATUS[0]}
@@ -279,15 +260,20 @@ function run_behat() {
         RERUN_FILE_TO_USE="${RERUN_FILE}{runprocess}"
     fi
 
+    BEHAT_SUITE_TO_USE=""
+    if [ -n "$BEHAT_SUITE" ]; then
+        BEHAT_SUITE_TO_USE="--suite=${BEHAT_SUITE}"
+    fi
+
     BEHAT_PROFILE_ORG=$BEHAT_PROFILE
     # Commands for Moodle 31 has chnaged, so do following:
     if [ "$MOODLE_VERSION" -ge "31" ]; then
         if [ -z "$SINGLE_PROCESS" ]; then
             BEHAT_PROFILE="${BEHAT_PROFILE}{runprocess}"
         fi
-        CMD="php admin/tool/behat/cli/run.php $BEHAT_FORMAT $BEHAT_OUTPUT $FROMRUN $TORUN -p=$BEHAT_PROFILE $BEHAT_TAGS $STOP_ON_FAIL $BEHAT_NAME $BEHAT_FEATURE"
+        CMD="php admin/tool/behat/cli/run.php $BEHAT_FORMAT $BEHAT_OUTPUT $FROMRUN $TORUN -p=$BEHAT_PROFILE $BEHAT_TAGS $STOP_ON_FAIL $BEHAT_NAME $BEHAT_FEATURE $BEHAT_SUITE_TO_USE"
     else
-        CMD="php admin/tool/behat/cli/run.php --rerun=\"${RERUN_FILE_TO_USE}.txt\" $BEHAT_FORMAT $BEHAT_OUTPUT $FROMRUN $TORUN -p=$BEHAT_PROFILE $BEHAT_TAGS $STOP_ON_FAIL $BEHAT_NAME $BEHAT_FEATURE"
+        CMD="php admin/tool/behat/cli/run.php --rerun=\"${RERUN_FILE_TO_USE}.txt\" $BEHAT_FORMAT $BEHAT_OUTPUT $FROMRUN $TORUN -p=$BEHAT_PROFILE $BEHAT_TAGS $STOP_ON_FAIL $BEHAT_NAME $BEHAT_FEATURE $BEHAT_SUITE_TO_USE"
     fi
 
     log "$CMD"
@@ -315,7 +301,7 @@ function run_behat() {
                     fi
                 fi
                 echo "---Running behat Process ${BEHAT_RUN} again for failed steps---"
-                CMD="vendor/bin/behat --config $MOODLE_BEHAT_DATA_DIR${BEHAT_RUN}/behat/behat.yml $BEHAT_FORMAT $BEHAT_OUTPUT -p=${BEHAT_PROFILE_ORG}${BEHAT_RUN} $BEHAT_TAGS $BEHAT_NAME $BEHAT_FEATURE --verbose --rerun"
+                CMD="vendor/bin/behat --config $MOODLE_BEHAT_DATA_DIR${BEHAT_RUN}/behat/behat.yml $BEHAT_FORMAT $BEHAT_OUTPUT -p=${BEHAT_PROFILE_ORG}${BEHAT_RUN} $BEHAT_TAGS $BEHAT_NAME $BEHAT_FEATURE $BEHAT_SUITE_TO_USE --verbose --rerun"
                 log "$CMD"
                 eval $CMD
                 newexitcode=$(($newexitcode+${PIPESTATUS[0]}))
@@ -333,7 +319,7 @@ function run_behat() {
                             ln -s $MOODLE_DIR $MOODLE_DIR/behatrun$i
                         fi
                         sleep 5
-                        CMD="vendor/bin/behat --config $MOODLE_BEHAT_DATA_DIR$i/behat/behat.yml $BEHAT_FORMAT $BEHAT_OUTPUT -p=${BEHAT_PROFILE_ORG}${i} $BEHAT_TAGS $BEHAT_NAME $BEHAT_FEATURE --verbose --rerun"
+                        CMD="vendor/bin/behat --config $MOODLE_BEHAT_DATA_DIR$i/behat/behat.yml $BEHAT_FORMAT $BEHAT_OUTPUT -p=${BEHAT_PROFILE_ORG}${i} $BEHAT_TAGS $BEHAT_NAME $BEHAT_FEATURE $BEHAT_SUITE_TO_USE --verbose --rerun"
                         log "$CMD"
                         eval $CMD
                         newexitcode=$(($newexitcode+${PIPESTATUS[0]}))
@@ -356,7 +342,7 @@ function run_behat() {
                     fi
                 fi
                 echo "---Running behat Process ${BEHAT_RUN} again for failed steps---"
-                CMD="vendor/bin/behat --config $MOODLE_BEHAT_DATA_DIR${BEHAT_RUN}/behat/behat.yml $BEHAT_FORMAT $BEHAT_OUTPUT --verbose --rerun $thisrerunfile -p=$BEHAT_PROFILE $BEHAT_TAGS $BEHAT_NAME $BEHAT_FEATURE"
+                CMD="vendor/bin/behat --config $MOODLE_BEHAT_DATA_DIR${BEHAT_RUN}/behat/behat.yml $BEHAT_FORMAT $BEHAT_OUTPUT --verbose --rerun $thisrerunfile -p=$BEHAT_PROFILE $BEHAT_TAGS $BEHAT_NAME $BEHAT_FEATURE $BEHAT_SUITE_TO_USE"
                 log "$CMD"
                 eval $CMD
                 newexitcode=$(($newexitcode+${PIPESTATUS[0]}))
@@ -374,7 +360,7 @@ function run_behat() {
                                 ln -s $MOODLE_DIR $MOODLE_DIR/behatrun$i
                             fi
                             sleep 5
-                            CMD="vendor/bin/behat --config $MOODLE_BEHAT_DATA_DIR$i/behat/behat.yml $BEHAT_FORMAT $BEHAT_OUTPUT --verbose --rerun $thisrerunfile -p=$BEHAT_PROFILE $BEHAT_TAGS $BEHAT_NAME $BEHAT_FEATURE"
+                            CMD="vendor/bin/behat --config $MOODLE_BEHAT_DATA_DIR$i/behat/behat.yml $BEHAT_FORMAT $BEHAT_OUTPUT --verbose --rerun $thisrerunfile -p=$BEHAT_PROFILE $BEHAT_TAGS $BEHAT_NAME $BEHAT_FEATURE $BEHAT_SUITE_TO_USE"
                             log "$CMD"
                             eval $CMD
                             exitcode=$(($exitcode+${PIPESTATUS[0]}))
@@ -384,6 +370,7 @@ function run_behat() {
                             fi
                         fi
                     fi
+                    newexitcode=$exitcode
                 done;
             fi
         fi
@@ -404,7 +391,6 @@ check_required_params
 # Checkout git branch.
 checkout_git_branch
 
-
 # Set db changes if needbe.
 set_db
 
@@ -412,7 +398,7 @@ set_db
 set_behat_run_env
 
 # Start apache.
-start_apache_selenium
+start_apache
 
 # Set moodle config.
 set_moodle_config

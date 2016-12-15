@@ -7,7 +7,7 @@ function get_user_options() {
     local currentdir=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 
     ORGINIAL_USER_OPTS="$@"
-    OPTS=`getopt -o j::r::p::t::f::n::h --long git::,remote::,branch::,dbhost::,dbtype::,dbname::,dbuser::,dbpass::,dbprefix::,dbport::,profile::,behatdbprefix::,seleniumurl::,phantomjsurl::,run::,totalruns::,tags::,feature::,name::,phpunitdbprefix::,filter::,test::,execute::,moodlepath::,phpversion::,phpdocker::,seleniumdocker::,dbdockercmd::,shareddir::,user::,behathelp,phpunithelp,usehostcode,verbose,noninteractive,noselenium,help,stoponfail,onlysetup,nocourse,forcedrop -- $ORGINIAL_USER_OPTS`
+    OPTS=`getopt -o j::r::p::t::f::n::h --long git::,remote::,branch::,dbhost::,dbtype::,dbname::,dbuser::,dbpass::,dbprefix::,dbport::,profile::,behatdbprefix::,seleniumurl::,run::,totalruns::,tags::,feature::,suite::,name::,phpunitdbprefix::,filter::,test::,execute::,moodlepath::,phpversion::,phpdocker::,seleniumdocker::,dbdockercmd::,shareddir::,shareddatadir::,user::,behathelp,phpunithelp,usehostcode,verbose,noninteractive,noselenium,help,stoponfail,onlysetup,nocourse,forcedrop,logjunit -- $ORGINIAL_USER_OPTS`
 
     if [ $? != 0 ]
     then
@@ -63,6 +63,10 @@ function get_user_options() {
             --shareddir)
                 case "$2" in
                     *) SERVER_FAIL_DUMP_DIR=$2 ; shift 2 ;;
+                esac ;;
+            --shareddatadir)
+                case "$2" in
+                    *) SERVER_DATA_DIR=$2 ; shift 2 ;;
                 esac ;;
             --user)
                 case "$2" in
@@ -126,13 +130,8 @@ function get_user_options() {
                 esac ;;
             --seleniumurl)
                 case "$2" in
-                    "") SELENIUM_URL=${SELENIUM_URL} ; shift 2 ;;
-                    *) SELENIUM_URL=$2 ; shift 2 ;;
-                esac ;;
-            --phantomjsurl)
-                case "$2" in
-                    "") PHANTOMJS_URL=${PHANTOMJS_URL} ; shift 2 ;;
-                    *) PHANTOMJS_URL=$2 ; shift 2 ;;
+                    "") SELENIUM_URLS=${SELENIUM_URLS} ; shift 2 ;;
+                    *) SELENIUM_URLS=$2 ; shift 2 ;;
                 esac ;;
             -r|--run)
                 case "$2" in
@@ -153,6 +152,11 @@ function get_user_options() {
                 case "$2" in
                     *) BEHAT_FEATURE=$2 ; shift 2 ;;
                 esac ;;
+            --suite)
+                case "$2" in
+                    "") BEHAT_SUITE="" ; shift 2 ;;
+                    *) BEHAT_SUITE=$2 ; shift 2 ;;
+                esac ;;
             -n|--name)
                 case "$2" in
                     "") BEHAT_NAME="" ; shift 2 ;;
@@ -172,6 +176,10 @@ function get_user_options() {
                 case "$2" in
                     "") PHPUNIT_FILTER=${PHPUNIT_FILTER} ; shift 2 ;;
                     *) PHPUNIT_FILTER="--filter=\"$2\"" ; shift 2 ;;
+                esac ;;
+            --logjunit)
+                case "$2" in
+                    *) LOG_JUNIT="\"$2\"" ; shift 2 ;;
                 esac ;;
             --stoponfail) STOP_ON_FAIL='--stop-on-failure'; shift ;;
             --onlysetup) ONLY_SETUP=1; shift ;;
@@ -279,13 +287,13 @@ create_selenium_instance() {
         return 0
     fi
 
-    if [ -n "$SELENIUM_URL" ] && [ "$SELENIUM_URL"  != "" ]; then
+    if [ -n "$SELENIUM_URLS" ] && [ "$SELENIUM_URLS"  != "" ] && [ "$SELENIUM_URLS"  -ne 0 ]; then
         return 0
     fi
 
     # If no profile passed then consider it as firefox.
     if [ -z "$BEHAT_PROFILE" ] || [ "$BEHAT_PROFILE" == "" ]; then
-        BEHAT_PROFILE=firefox
+        BEHAT_PROFILE=""
     fi
 
     if [ "$BEHAT_PROFILE" == "chrome" ]; then
@@ -294,12 +302,42 @@ create_selenium_instance() {
         SHMMAP=''
     fi
 
+    # All ports starts with 4444
+    DRIVER_PORT=4444
+    # Expose all the ports for which selenium is being created.
+    # BEHAT_TOTAL_RUNS - BEHAT_RUNS
+    EXPOSE="--expose "
+    PORTS=""
+    addhyphen=0
+    # If multiple behat runs, then create multiple selenium instances.
+    if [[ -z ${BEHAT_RUN} ]]; then
+        BEHAT_RUN="0" # Process number
+    fi
+    if [[ -z ${BEHAT_TOTAL_RUNS} ]]; then
+        BEHAT_TOTAL_RUNS="1" # Total number of processes
+    fi
+
+    if [[ "${BEHAT_RUN}" = "0" ]]; then
+        runs=$((${BEHAT_TOTAL_RUNS} - ${BEHAT_RUN}))
+        for ((i=0;i<${runs};i+=1)); do
+            if [ $addhyphen -gt 0 ]; then
+                EXPOSE="${EXPOSE}-"
+            fi
+            addhyphen=$(($addhyphen+1))
+            EXPOSE="${EXPOSE}"$(($DRIVER_PORT+$i))
+            PORTS="$PORTS "$(($DRIVER_PORT+$i))
+        done
+    else
+        EXPOSE=${EXPOSE}${DRIVER_PORT}
+        PORTS=$DRIVER_PORT
+    fi
+
     # Start phantomjs instance.
     if [ -z "$SELENIUM_DOCKER" ]; then
-        log "Starting $DEFAULT_SELENIUM_DOCKER for $BEHAT_PROFILE"
+        log "Starting $DEFAULT_SELENIUM_DOCKER"
         SELENIUM_DOCKER="$DEFAULT_SELENIUM_DOCKER $BEHAT_PROFILE"
         # Use copy of the code, so it doesn't depend on the host code.
-        DOCKER_SELENIUM_INSTANCE=$(docker run -d $SHMMAP -v ${MOODLE_PATH}/:/moodle $SELENIUM_DOCKER)
+        DOCKER_SELENIUM_INSTANCE=$(docker run -d $EXPOSE $SHMMAP -v ${MOODLE_PATH}/:/moodle $SELENIUM_DOCKER $PORTS)
     else
         DOCKER_SELENIUM_INSTANCE=$(docker run -d $SHMMAP -v ${MOODLE_PATH}/:/var/www/html/moodle $SELENIUM_DOCKER)
     fi
@@ -313,11 +351,13 @@ create_selenium_instance() {
         SELENIUMIP=$(docker inspect $DOCKER_SELENIUM_INSTANCE | grep '"IPAddress": \+' | sed -rn '/([0-9]{1,3}\.){3}[0-9]{1,3}/p' | sed '$!d' | sed 's#.* "##' | sed 's#",##')
     fi
 
-    if [ "$BEHAT_PROFILE" == "phantomjs" ]; then
-        SELENIUMURL="--phantomjsurl=${SELENIUMIP}:4443"
-    else
-        SELENIUMURL="--seleniumurl=${SELENIUMIP}:4444"
-    fi
+
+    SELENIUMURL="--seleniumurl="
+    for p in $PORTS; do
+        SELENIUMURL=${SELENIUMURL}${SELENIUMIP}:$p","
+    done
+
+    SELENIUMURL=${SELENIUMURL::-1}
     log "Selenium url is $SELENIUMURL"
     # Wait for 5 seconds to ensure we have selenium docker initialized.
     sleep 5
@@ -328,7 +368,6 @@ start_php_server_and_run_test() {
     if [ -z "$PHP_SERVER_DOCKER" ]; then
         get_php_version_to_use $PHP_VERSION
         PHP_SERVER_DOCKER="rajeshtaneja/php:${PHP_VERSION}"
-
         # If db is oci or mssql then ensure we don't use php7.
         if [ "$DBTYPE" == "mssql" ] || [ "$DBTYPE" == "oci" ]; then
             if [ "$PHP_SERVER_DOCKER" == "rajeshtaneja/php:7.0.4" ]; then
@@ -370,6 +409,13 @@ start_php_server_and_run_test() {
         DOCKER_FAIL_DUMP_MAP="-v ${SERVER_FAIL_DUMP_DIR}/:/shared"
     fi
 
+    # If asked to use host code then map to /var/www/html/moodle.
+    if [ -z "$SERVER_DATA_DIR" ] || [ "$SERVER_DATA_DIR" == "" ]; then
+        DOCKER_DATA_MAP=""
+    else
+        DOCKER_DATA_MAP="-v ${SERVER_DATA_DIR}/:/shared_data"
+    fi
+
     if [ -n "$LINK_DB" ]; then
         passdbhost="--dbhost=$DBHOST"
     else
@@ -383,7 +429,7 @@ start_php_server_and_run_test() {
 
     if [ "$TEST_TO_EXECUTE" == "behat" ]; then
         cmd="docker run ${dockerrunmode} --rm --user=${DOCKER_USER} --name ${PHP_DOCKER_NAME} \
-            -v ${MOODLE_PATH}/:${DOCKER_MOODLE_PATH} ${DOCKER_FAIL_DUMP_MAP} ${LINK_SELENIUM}  ${LINK_DB}\
+            -v ${MOODLE_PATH}/:${DOCKER_MOODLE_PATH} ${DOCKER_FAIL_DUMP_MAP} ${DOCKER_DATA_MAP} ${LINK_SELENIUM}  ${LINK_DB}\
             ${PHP_SERVER_DOCKER} /scripts/behat.sh $passdbhost $SELENIUMURL $ORGINIAL_USER_OPTS"
 
         log "Executing: $cmd"
@@ -391,14 +437,14 @@ start_php_server_and_run_test() {
         EXITCODE=$?
     elif [ "$TEST_TO_EXECUTE" == "phpunit" ]; then
         cmd="docker run ${dockerrunmode} --rm --user=${DOCKER_USER} --name ${PHP_DOCKER_NAME} \
-            -v ${MOODLE_PATH}/:${DOCKER_MOODLE_PATH}  ${LINK_DB} ${PHP_SERVER_DOCKER} /scripts/phpunit.sh $passdbhost $ORGINIAL_USER_OPTS"
+            -v ${MOODLE_PATH}/:${DOCKER_MOODLE_PATH} ${DOCKER_DATA_MAP} ${LINK_DB} ${PHP_SERVER_DOCKER} /scripts/phpunit.sh $passdbhost $ORGINIAL_USER_OPTS"
 
         log "Executing: $cmd"
         eval $cmd
         EXITCODE=$?
     else
         cmd="docker run ${dockerrunmode} --rm --user=${DOCKER_USER} --name ${PHP_DOCKER_NAME}"
-        cmd="$cmd -v ${MOODLE_PATH}/:${DOCKER_MOODLE_PATH} ${DOCKER_FAIL_DUMP_MAP} ${LINK_SELENIUM} ${LINK_DB}"
+        cmd="$cmd -v ${MOODLE_PATH}/:${DOCKER_MOODLE_PATH} ${DOCKER_FAIL_DUMP_MAP} ${DOCKER_DATA_MAP} ${LINK_SELENIUM} ${LINK_DB}"
         cmd="$cmd ${PHP_SERVER_DOCKER} /scripts/moodle.sh $passdbhost $SELENIUMURL $ORGINIAL_USER_OPTS"
 
         log "Executing: $cmd"

@@ -17,7 +17,6 @@
     - FailDumpDir
     - BehatTimingFile
     - SeleniumUrl
-    - PhantomjsUrl
 **/
 
 unset($CFG);
@@ -55,13 +54,14 @@ $CFG->behat_screenshots_path = '%%FailDumpDir%%/screenshots';
 $CFG->behat_faildump_path = '%%FailDumpDir%%/screenshots';
 define ('BEHAT_FEATURE_TIMING_FILE', '%%BehatTimingFile%%');
 
+$urls = explode(',', '%%Seleniumurls%%');
+
 $CFG->behat_config = array(
     'default' => array(
         'extensions' => array(
             'Behat\MinkExtension\Extension' => array(
                 'selenium2' => array(
-                    'browser' => 'firefox',
-                    'wd_host' => 'http://%%SeleniumUrl%%/wd/hub'
+                    'browser' => 'firefox'
                 )
             )
         )
@@ -74,7 +74,6 @@ $CFG->behat_config = array(
            'Behat\MinkExtension\Extension' => array(
                'selenium2' => array(
                    'browser' => 'phantomjs',
-                   'wd_host' => 'http://%%PhantomjsUrl%%/wd/hub'
                )
            )
        )
@@ -87,7 +86,6 @@ $CFG->behat_config = array(
            'Behat\MinkExtension\Extension' => array(
                'selenium2' => array(
                    'browser' => 'phantomjs',
-                   'wd_host' => 'http://%%SeleniumUrl%%/wd/hub'
                )
            )
        )
@@ -97,7 +95,6 @@ $CFG->behat_config = array(
             'Behat\MinkExtension\Extension' => array(
                 'selenium2' => array(
                     'browser' => 'chrome',
-                    'wd_host' => 'http://%%SeleniumUrl%%/wd/hub'
                 )
            )
         )
@@ -107,12 +104,33 @@ $CFG->behat_config = array(
             'Behat\MinkExtension\Extension' => array(
                 'selenium2' => array(
                     'browser' => 'firefox',
-                    'wd_host' => 'http://%%SeleniumUrl%%/wd/hub'
                 )
             )
         )
     )
 );
+
+// If only one selenium url passed, then set it as default profile url.
+if (count($urls) == 1) {
+    $CFG->behat_config = array(
+        'default' => array(
+            'extensions' => array(
+                'Behat\MinkExtension\Extension' => array(
+                    'selenium2' => array(
+                        'browser' => 'firefox',
+                        'wd_host' => 'http://'.$urls[0].'/wd/hub'
+                    )
+                )
+            )
+        )
+    );
+}
+
+$counter = 0;
+for ($i = %%fromrun%%; $i < %%totalrun%%; $i++) {
+    $CFG->behat_parallel_run[$i] = array ('wd_host' => 'http://'.$urls[$counter].'/wd/hub');
+    $counter++;
+}
 
 $CFG->directorypermissions = 0777;
 

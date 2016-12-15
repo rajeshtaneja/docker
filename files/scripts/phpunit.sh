@@ -46,7 +46,7 @@ function set_phpunit_run_env() {
     MOODLE_VERSION=$(grep "\$branch" ${MOODLE_DIR}/version.php | sed "s/';.*//" | sed "s/^\$.*'//")
 
     # Moodle data dir to create.
-    MOODLE_DATA_BASE_DIR=${SHARED_DIR}/moodledata/${MOODLE_VERSION}/${DBTYPE}
+    MOODLE_DATA_BASE_DIR=${SHARED_DATA_DIR}/moodledata/${MOODLE_VERSION}/${DBTYPE}
     MOODLE_DATA_DIR=${MOODLE_DATA_BASE_DIR}/data
     MOODLE_PHPUNIT_DATA_DIR=${MOODLE_DATA_BASE_DIR}/phpunit_data
     MOODLE_BEHAT_DATA_DIR=${MOODLE_DATA_BASE_DIR}/behat_data
@@ -58,20 +58,12 @@ function set_phpunit_run_env() {
     fi
 
     # Create data dir if not present. Create it one by one.
-    if [ ! -d "${SHARED_DIR}/moodledata" ]; then
-        sudo mkdir ${SHARED_DIR}/moodledata
-        sudo chmod 777 ${SHARED_DIR}/moodledata
-    fi
-    if [ ! -d "${SHARED_DIR}/moodledata/${MOODLE_VERSION}" ]; then
-        mkdir ${SHARED_DIR}/moodledata/${MOODLE_VERSION}
-        chmod 777 ${SHARED_DIR}/moodledata/${MOODLE_VERSION}
-    fi
-    if [ ! -d "${SHARED_DIR}/moodledata/${MOODLE_VERSION}/${DBTYPE}" ]; then
-        mkdir ${SHARED_DIR}/moodledata/${MOODLE_VERSION}/${DBTYPE}
-        chmod 777 -R ${SHARED_DIR}/moodledata/${MOODLE_VERSION}/${DBTYPE}
+    if [ ! -d "${MOODLE_DATA_BASE_DIR}" ]; then
+        sudo mkdir -p ${MOODLE_DATA_BASE_DIR}
+        sudo chmod -R 777 ${SHARED_DATA_DIR}
     fi
     if [ ! -d "$MOODLE_DATA_DIR" ]; then
-        mkdir $MOODLE_DATA_DIR
+        mkdir -p $MOODLE_DATA_DIR
         chmod 777 -R $MOODLE_DATA_DIR
     fi
     if [ ! -d "$MOODLE_PHPUNIT_DATA_DIR" ]; then
@@ -130,7 +122,12 @@ function run_phpunit(){
     echo "Running behat for ${DBTYPE} database"
     whereami="${PWD}"
     cd $MOODLE_DIR
-    CMD="vendor/bin/phpunit $PHPUNIT_FILTER $PHPUNIT_TEST $STOP_ON_FAIL"
+    if [[ -z "$LOG_JUNIT" ]]; then
+        LOG_JUNIT=""
+    else
+        LOG_JUNIT="--log-junit=${LOG_JUNIT}"
+    fi
+    CMD="vendor/bin/phpunit $PHPUNIT_FILTER $PHPUNIT_TEST $STOP_ON_FAIL $LOG_JUNIT"
     log "$CMD"
     eval $CMD
     exitcode=${PIPESTATUS[0]}

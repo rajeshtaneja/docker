@@ -15,6 +15,7 @@ MOODLE_DIR_ORG=/moodle
 MOODLE_DIR=/var/www/html/moodle
 BEHAT_CONFIG_FILE=${HOMEDIR}config/config.php.template
 SHARED_DIR=/shared
+SHARED_DATA_DIR=/shared_data
 
 SCRIPT_LIB_PATH=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 if [ -f "${SCRIPT_LIB_PATH}/runlib.sh" ]; then
@@ -88,19 +89,11 @@ function set_default_variables() {
     if [[ -z ${BEHAT_TOTAL_RUNS} ]]; then
         BEHAT_TOTAL_RUNS="1" # Total number of processes
     fi
-    if [[ -z ${SELENIUM_URL} ]]; then
-        if [[ -n ${SELENIUM_DOCKER_PORT_4444_TCP_ADDR} ]]; then
-            SELENIUM_URL=${SELENIUM_DOCKER_PORT_4444_TCP_ADDR}:4444
-        fi
-    fi
-    if [[ -z ${PHANTOMJS_URL} ]]; then
-        if [[ -n ${PHANTOMJS_DOCKER_PORT_4444_TCP_ADDR} ]]; then
-            PHANTOMJS_URL=${PHANTOMJS_DOCKER_PORT_4444_TCP_ADDR}:4443
-        fi
-    fi
     if [[ -z ${SHARED_DIR} ]]; then
         SHARED_DIR=/shared
-
+    fi
+    if [[ -z ${SHARED_DATA_DIR} ]]; then
+        SHARED_DATA_DIR=/shared_data
     fi
 }
 
@@ -192,17 +185,6 @@ function check_required_params() {
     elif [[ -z "$DBHOST" ]]; then
         echo "DBHOST is not set."
         usage 1
-    fi
-
-    # Ensure selenium or phantomjs url are there.
-    if [ "$TEST_TO_EXECUTE" == "behat" ]; then
-        if [ "$BEHAT_PROFILE" == "phantomjs" ] && [ -z "$PHANTOMJS_URL" ]; then
-            echo "Phantomjs server is not found"
-            usage 1
-        elif [ -z "$SELENIUM_URL" ]; then
-            echo "Selenium server is not found"
-            usage 1
-        fi
     fi
 
     # Check if git and other commands work.
@@ -397,19 +379,22 @@ function set_moodle_config() {
 %%SiteId%%#${BRANCH}
 %%FailDumpDir%%#${MOODLE_FAIL_DUMP_DIR}
 %%BehatTimingFile%%#${BEHAT_TIMING_FILE}
-%%SeleniumUrl%%#${SELENIUM_URL}
-%%PhantomjsUrl%%#${PHANTOMJS_URL}
 %%DockerContainerIp%%#${DOCKERIPWEB}
-%%DockerContainerIpBehat%%#${DOCKERIPBEHAT}"
-  # Apply template transformations.
-  text="$( cat $BEHAT_CONFIG_FILE )"
-  for i in ${replacements}; do
-      text=$( echo "${text}" | sed "s#${i}#g" )
-  done
+%%DockerContainerIpBehat%%#${DOCKERIPBEHAT}
+%%Seleniumurls%%#${SELENIUM_URLS}
+%%fromrun%%#${BEHAT_RUN}
+%%totalrun%%#${BEHAT_TOTAL_RUNS}"
 
-  # Save the config.php into destination.
-  echo "${text}" > $MOODLE_DIR/config.php
-  # remove_vendordir
+
+    # Apply template transformations.
+    text="$( cat $BEHAT_CONFIG_FILE )"
+    for i in ${replacements}; do
+        text=$( echo "${text}" | sed "s#${i}#g" )
+    done
+
+    # Save the config.php into destination.
+    echo "${text}" > $MOODLE_DIR/config.php
+    # remove_vendordir
 }
 
 function remove_vendordir() {
