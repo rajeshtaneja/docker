@@ -196,7 +196,9 @@ RUN chmod 775 /scripts/behat.sh \
  && chmod 775 /scripts/init.sh \
  && chmod 777 /moodledata \
  && mkdir /shared \
- && chmod 777 /shared
+ && chmod 777 /shared \
+ && mkdir /shared_data \
+ && chmod 777 /shared_data
 
 RUN ln -s /scripts/behat.sh /behat
 RUN ln -s /scripts/phpunit.sh /phpunit

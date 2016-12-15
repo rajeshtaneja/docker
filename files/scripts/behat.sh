@@ -288,6 +288,9 @@ function run_behat() {
     if [ "${exitcode}" -ne 0 ]; then
         BEHAT_FORMAT=""
         BEHAT_OUTPUT=""
+        echo "----------------------------------------------------------------------------------------------"
+        echo "!!!---Last exit code is ${exitcode}. Trying failed runs again to remove random failures.---!!!"
+        echo "----------------------------------------------------------------------------------------------"
         # Re-run failed scenarios, to ensure they are true fails.
         if [ "$MOODLE_VERSION" -ge "31" ]; then
             # If we are running 1 run single or specified then don't need to check for each run.

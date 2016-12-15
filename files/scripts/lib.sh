@@ -345,8 +345,9 @@ function set_moodle_config() {
     if [[ "${DBTYPE}" == "oci" ]]; then
         if [[ -z ${PHPUNIT_DB_PREFIX} ]]; then
             echo "Using xe database for oracle"
-            DBNAME=xe
             PHPUNIT_DB_PREFIX="p${str: -1}"
+        fi
+        if [[ -z ${BEHAT_DB_PREFIX} ]]; then
             BEHAT_DB_PREFIX="b${str: -1}"
         fi
     fi

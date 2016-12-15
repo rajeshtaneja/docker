@@ -93,8 +93,6 @@ update_composer_on_host
 
 start_php_server_and_run_test
 
-EXITCODE=$?
-
 stop_all_instances
 
 log "** Exit from run.sh is: $EXITCODE"

@@ -264,20 +264,161 @@ create_db_instance() {
     # If db is not passed then start postgres instance.
     # Default value for DBTYPE is pgsql and user/pass is moodle. So just checking host is fine.
     if [ -z "$DBHOST" ]; then
-        log "Starting postgres database instance"
-        DOCKER_DB_INSTANCE=$(${DB_DOCKER_TO_START_CMD})
-        # Wait for 5 seconds to ensure we have postgres docker initialized.
-        sleep 5
-
-        LINK_DB="--link ${DOCKER_DB_INSTANCE}:DB"
-
-        DBHOST=$(docker inspect -f "{{ .NetworkSettings.IPAddress }}" $DOCKER_DB_INSTANCE)
-        # IPAddress can be different with the way it is used on system, so grep it.
-        if [ -z "$DBHOST" ] || [ "$DBHOST" == "" ]; then
-            DBHOST=$(docker inspect $DOCKER_DB_INSTANCE | grep '"IPAddress": \+' | sed -rn '/([0-9]{1,3}\.){3}[0-9]{1,3}/p' | sed '$!d' | sed 's#.* "##' | sed 's#",##')
+        # Default dbtype to use is pgsql
+        if [ -z "$DBTYPE" ]; then
+            DBTYPE="pgsql"
         fi
-        log "Postgres DBHOST is $DBHOST"
+
+        if [ "$DBTYPE" = "pgsql" ]; then
+            create_pgsql_db_instance
+        elif [ "$DBTYPE" = "mysqli" ]; then
+            create_mysqli_db_instance
+        elif [ "$DBTYPE" = "mariadb" ]; then
+            create_mariadb_db_instance
+        elif [ "$DBTYPE" = "oci" ]; then
+            create_oci_db_instance
+        elif [ "$DBTYPE" = "sqlsrv" ]; then
+            create_sqlsrv_db_instance
+        elif [ "$DBTYPE" = "mssql" ]; then
+            create_sqlsrv_db_instance
+        fi
+
     fi
+}
+
+# Create postgres db instance.
+create_pgsql_db_instance() {
+    log "Starting postgres database instance"
+    DOCKER_DB_INSTANCE=$(${DB_DOCKER_TO_START_CMD})
+    # Wait for 5 seconds to ensure we have postgres docker initialized.
+    sleep 10
+
+    LINK_DB="--link ${DOCKER_DB_INSTANCE}:DB"
+
+    DBHOST=$(docker inspect -f "{{ .NetworkSettings.IPAddress }}" $DOCKER_DB_INSTANCE)
+    # IPAddress can be different with the way it is used on system, so grep it.
+    if [ -z "$DBHOST" ] || [ "$DBHOST" == "" ]; then
+        DBHOST=$(docker inspect $DOCKER_DB_INSTANCE | grep '"IPAddress": \+' | sed -rn '/([0-9]{1,3}\.){3}[0-9]{1,3}/p' | sed '$!d' | sed 's#.* "##' | sed 's#",##')
+    fi
+    DBNAME="moodle"
+    DBUSER="moodle"
+    DBPASS="moodle"
+    log "Postgres DBHOST is $DBHOST"
+}
+
+# Create mysqli db instance
+create_mysqli_db_instance() {
+    log "Starting Mysql database instance"
+    DB_DOCKER_TO_START_CMD='docker run -e  MYSQL_ROOT_PASSWORD=moodle -e MYSQL_DATABASE=moodle -e MYSQL_USER=moodle -e MYSQL_PASSWORD=moodle -d mysql/mysql-server:latest'
+    DOCKER_DB_INSTANCE=$(${DB_DOCKER_TO_START_CMD})
+    # Wait for 10 seconds to ensure we have postgres docker initialized.
+    sleep 10
+    # Check if db is ready.
+    test=$(docker exec $DOCKER_DB_INSTANCE mysql -uroot -pmoodle -e 'SHOW databases;')
+    if [ $? -ne 0 ]; then
+        sleep 20
+    fi
+
+    LINK_DB="--link ${DOCKER_DB_INSTANCE}:DB"
+
+    DBHOST=$(docker inspect -f "{{ .NetworkSettings.IPAddress }}" $DOCKER_DB_INSTANCE)
+    # IPAddress can be different with the way it is used on system, so grep it.
+    if [ -z "$DBHOST" ] || [ "$DBHOST" == "" ]; then
+        DBHOST=$(docker inspect $DOCKER_DB_INSTANCE | grep '"IPAddress": \+' | sed -rn '/([0-9]{1,3}\.){3}[0-9]{1,3}/p' | sed '$!d' | sed 's#.* "##' | sed 's#",##')
+    fi
+
+    # Set db to be used by moodle testing.
+    docker exec $DOCKER_DB_INSTANCE mysql -uroot -pmoodle -e 'ALTER DATABASE moodle DEFAULT CHARACTER SET utf8 COLLATE utf8_bin;'
+    docker exec $DOCKER_DB_INSTANCE mysql -uroot -pmoodle -e 'SET GLOBAL innodb_file_per_table=1;' moodle
+    docker exec $DOCKER_DB_INSTANCE mysql -uroot -pmoodle -e 'SET GLOBAL innodb_file_format=Barracuda;' moodle
+
+    DBNAME="moodle"
+    DBUSER="moodle"
+    DBPASS="moodle"
+    log "Mysql DBHOST is $DBHOST"
+}
+
+# Create mysqli db instance
+create_mariadb_db_instance() {
+    log "Starting Mariadb database instance"
+    DB_DOCKER_TO_START_CMD='docker run -e  MYSQL_ROOT_PASSWORD=moodle -e MYSQL_DATABASE=moodle -e MYSQL_USER=moodle -e MYSQL_PASSWORD=moodle -d mariadb:latest'
+    DOCKER_DB_INSTANCE=$(${DB_DOCKER_TO_START_CMD})
+    # Wait for 10 seconds to ensure we have postgres docker initialized.
+    sleep 10
+    # Check if db is ready.
+    test=$(docker exec $DOCKER_DB_INSTANCE mysql -uroot -pmoodle -e 'SHOW databases;')
+    if [ $? -ne 0 ]; then
+        sleep 20
+    fi
+
+    LINK_DB="--link ${DOCKER_DB_INSTANCE}:DB"
+
+    DBHOST=$(docker inspect -f "{{ .NetworkSettings.IPAddress }}" $DOCKER_DB_INSTANCE)
+    # IPAddress can be different with the way it is used on system, so grep it.
+    if [ -z "$DBHOST" ] || [ "$DBHOST" == "" ]; then
+        DBHOST=$(docker inspect $DOCKER_DB_INSTANCE | grep '"IPAddress": \+' | sed -rn '/([0-9]{1,3}\.){3}[0-9]{1,3}/p' | sed '$!d' | sed 's#.* "##' | sed 's#",##')
+    fi
+
+    # Set db to be used by moodle testing.
+    docker exec $DOCKER_DB_INSTANCE mysql -uroot -pmoodle -e 'ALTER DATABASE moodle DEFAULT CHARACTER SET utf8 COLLATE utf8_bin;'
+    docker exec $DOCKER_DB_INSTANCE mysql -uroot -pmoodle -e 'SET GLOBAL innodb_file_per_table=1;' moodle
+    docker exec $DOCKER_DB_INSTANCE mysql -uroot -pmoodle -e 'SET GLOBAL innodb_file_format=Barracuda;' moodle
+
+    DBNAME="moodle"
+    DBUSER="moodle"
+    DBPASS="moodle"
+    log "Mariadb DBHOST is $DBHOST"
+}
+
+# Create mysqli db instance
+create_oci_db_instance() {
+    log "Starting Oracle database instance"
+    DB_DOCKER_TO_START_CMD='docker run -d -e ORACLE_ALLOW_REMOTE=true rajeshtaneja/oracle-xe-11g'
+    DOCKER_DB_INSTANCE=$(${DB_DOCKER_TO_START_CMD})
+    # Wait for 5 seconds to ensure we have postgres docker initialized.
+    sleep 5
+
+    LINK_DB="--link ${DOCKER_DB_INSTANCE}:DB"
+
+    DBHOST=$(docker inspect -f "{{ .NetworkSettings.IPAddress }}" $DOCKER_DB_INSTANCE)
+    # IPAddress can be different with the way it is used on system, so grep it.
+    if [ -z "$DBHOST" ] || [ "$DBHOST" == "" ]; then
+        DBHOST=$(docker inspect $DOCKER_DB_INSTANCE | grep '"IPAddress": \+' | sed -rn '/([0-9]{1,3}\.){3}[0-9]{1,3}/p' | sed '$!d' | sed 's#.* "##' | sed 's#",##')
+    fi
+
+    DBNAME="xe"
+    DBUSER="system"
+    DBPASS="oracle"
+    log "Oracle DBHOST is $DBHOST"
+}
+
+# Create mysqli db instance
+create_sqlsrv_db_instance() {
+    log "Starting $DBTYPE database instance"
+    DB_DOCKER_TO_START_CMD='docker run -e ACCEPT_EULA=Y -e SA_PASSWORD=Passw0rd! -d microsoft/mssql-server-linux'
+    DOCKER_DB_INSTANCE=$(${DB_DOCKER_TO_START_CMD})
+    # Wait for 20 seconds to ensure we have postgres docker initialized.
+    sleep 20
+    TEST=sqlcmd -S $DBHOST -U SA -P 'Passw0rd!'
+
+    LINK_DB="--link ${DOCKER_DB_INSTANCE}:DB"
+
+    DBHOST=$(docker inspect -f "{{ .NetworkSettings.IPAddress }}" $DOCKER_DB_INSTANCE)
+    # IPAddress can be different with the way it is used on system, so grep it.
+    if [ -z "$DBHOST" ] || [ "$DBHOST" == "" ]; then
+        DBHOST=$(docker inspect $DOCKER_DB_INSTANCE | grep '"IPAddress": \+' | sed -rn '/([0-9]{1,3}\.){3}[0-9]{1,3}/p' | sed '$!d' | sed 's#.* "##' | sed 's#",##')
+    fi
+
+    # Expects you to have sqlcmd.
+    # sudo apt-get update
+    # sudo apt-get install mssql-tools
+    currentpath=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
+    sqlcmd -S $DBHOST -U SA -P 'Passw0rd!' < $currentpath/../mssql/mssql_answer.txt
+
+    DBNAME="moodle"
+    DBUSER="sa"
+    DBPASS="Passw0rd!"
+    log "$DBTYPE DBHOST is $DBHOST"
 }
 
 # Create selenium instance.
@@ -416,10 +557,21 @@ start_php_server_and_run_test() {
         DOCKER_DATA_MAP="-v ${SERVER_DATA_DIR}/:/shared_data"
     fi
 
+    passdbhost=""
     if [ -n "$LINK_DB" ]; then
         passdbhost="--dbhost=$DBHOST"
-    else
-        passdbhost=""
+        if [ -n "$DBNAME" ]; then
+            passdbhost="${passdbhost} --dbname=$DBNAME"
+        fi
+        if [ -n "$DBUSER" ]; then
+            passdbhost="${passdbhost} --dbuser=$DBUSER"
+        fi
+        if [ -n "$DBPASS" ]; then
+            passdbhost="${passdbhost} --dbpass=$DBPASS"
+        fi
+        if [ -n "$DBPORT" ]; then
+            passdbhost="${passdbhost} --dbport=$DBPORT"
+        fi
     fi
 
     local dockerrunmode="-ti"
@@ -471,7 +623,7 @@ stop_all_instances() {
     # Stop db docker instance if created.
     docker inspect $DOCKER_DB_INSTANCE  > /dev/null 2>&1
     if [ $? -eq 0 ]; then
-        log "Stopping postgres docker instance..."
+        log "Stopping database $DBTYPE docker instance..."
         docker stop $DOCKER_DB_INSTANCE
         docker rm $DOCKER_DB_INSTANCE
         DB_STOPPED=1
