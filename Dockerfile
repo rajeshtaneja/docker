@@ -42,46 +42,46 @@ RUN apt-get install -y \
     unixodbc \
     unzip \
     apache2 \
-    php7.0 \
-    php7.0-bcmath \
-    php7.0-bz2 \
-    php7.0-cgi \
-    php7.0-cli \
-    php7.0-common \
-    php7.0-curl \
-    php7.0-dba \
-    php7.0-dev \
-    php7.0-enchant \
-    php7.0-gd \
-    php7.0-gmp \
-    php7.0-imap \
-    php7.0-interbase \
-    php7.0-intl \
-    php7.0-json \
-    php7.0-ldap \
-    php7.0-mbstring \
-    php7.0-mcrypt \
-    php7.0-mysql \
-    php7.0-odbc \
-    php7.0-opcache \
-    php7.0-pgsql \
-    php7.0-phpdbg \
-    php7.0-pspell \
-    php7.0-readline \
-    php7.0-recode \
-    php7.0-soap \
-    php7.0-sqlite3 \
-    php7.0-sybase \
-    php7.0-tidy \
-    php7.0-xml \
-    php7.0-xmlrpc \
-    php7.0-xsl \
-    php7.0-zip \
+    php7.1 \
+    php7.1-bcmath \
+    php7.1-bz2 \
+    php7.1-cgi \
+    php7.1-cli \
+    php7.1-common \
+    php7.1-curl \
+    php7.1-dba \
+    php7.1-dev \
+    php7.1-enchant \
+    php7.1-gd \
+    php7.1-gmp \
+    php7.1-imap \
+    php7.1-interbase \
+    php7.1-intl \
+    php7.1-json \
+    php7.1-ldap \
+    php7.1-mbstring \
+    php7.1-mcrypt \
+    php7.1-mysql \
+    php7.1-odbc \
+    php7.1-opcache \
+    php7.1-pgsql \
+    php7.1-phpdbg \
+    php7.1-pspell \
+    php7.1-readline \
+    php7.1-recode \
+    php7.1-soap \
+    php7.1-sqlite3 \
+    php7.1-sybase \
+    php7.1-tidy \
+    php7.1-xml \
+    php7.1-xmlrpc \
+    php7.1-xsl \
+    php7.1-zip \
     php-memcached \
     php-memcache \
     php-apcu \
     php-mongodb \
-    libapache2-mod-php7.0 \
+    libapache2-mod-php7.1 \
     libpcre3-dev \
     libxml2-dev \
     libcurl4-openssl-dev \
@@ -112,18 +112,18 @@ COPY files/oracle/anwser-install-oci8.txt /tmp/anwser-install-oci8.txt
 
 # Install sqlsrv
 RUN pecl install sqlsrv-4.0.7 pdo_sqlsrv-4.0.7 \
- && echo 'extension=sqlsrv.so' > /etc/php/7.0/apache2/conf.d/sqlsrv.ini \
- && echo 'extension=sqlsrv.so' > /etc/php/7.0/cli/conf.d/sqlsrv.ini \
- && echo 'extension=pdo_sqlsrv.so' > /etc/php/7.0/apache2/conf.d/pdo_sqlsrv.ini \
- && echo 'extension=pdo_sqlsrv.so' > /etc/php/7.0/cli/conf.d/pdo_sqlsrv.ini \
- && echo 'mssql.textlimit = 20971520' >> /etc/php/7.0/apache2/conf.d/sqlsrv.ini \
- && echo 'mssql.textlimit = 20971520' >> /etc/php/7.0/cli/conf.d/sqlsrv.ini \
- && echo 'mssql.textlimit = 20971520' >> /etc/php/7.0/apache2/conf.d/pdo_sqlsrv.ini \
- && echo 'mssql.textlimit = 20971520' >> /etc/php/7.0/cli/conf.d/pdo_sqlsrv.ini \
- && echo 'mssql.textsize = 20971520' >> /etc/php/7.0/apache2/conf.d/sqlsrv.ini \
- && echo 'mssql.textsize = 20971520' >> /etc/php/7.0/cli/conf.d/sqlsrv.ini \
- && echo 'mssql.textsize = 20971520' >> /etc/php/7.0/apache2/conf.d/pdo_sqlsrv.ini \
- && echo 'mssql.textsize = 20971520' >> /etc/php/7.0/cli/conf.d/pdo_sqlsrv.ini
+ && echo 'extension=sqlsrv.so' > /etc/php/7.1/apache2/conf.d/sqlsrv.ini \
+ && echo 'extension=sqlsrv.so' > /etc/php/7.1/cli/conf.d/sqlsrv.ini \
+ && echo 'extension=pdo_sqlsrv.so' > /etc/php/7.1/apache2/conf.d/pdo_sqlsrv.ini \
+ && echo 'extension=pdo_sqlsrv.so' > /etc/php/7.1/cli/conf.d/pdo_sqlsrv.ini \
+ && echo 'mssql.textlimit = 20971520' >> /etc/php/7.1/apache2/conf.d/sqlsrv.ini \
+ && echo 'mssql.textlimit = 20971520' >> /etc/php/7.1/cli/conf.d/sqlsrv.ini \
+ && echo 'mssql.textlimit = 20971520' >> /etc/php/7.1/apache2/conf.d/pdo_sqlsrv.ini \
+ && echo 'mssql.textlimit = 20971520' >> /etc/php/7.1/cli/conf.d/pdo_sqlsrv.ini \
+ && echo 'mssql.textsize = 20971520' >> /etc/php/7.1/apache2/conf.d/sqlsrv.ini \
+ && echo 'mssql.textsize = 20971520' >> /etc/php/7.1/cli/conf.d/sqlsrv.ini \
+ && echo 'mssql.textsize = 20971520' >> /etc/php/7.1/apache2/conf.d/pdo_sqlsrv.ini \
+ && echo 'mssql.textsize = 20971520' >> /etc/php/7.1/cli/conf.d/pdo_sqlsrv.ini
 
 # Install oci
 RUN unzip /tmp/instantclient-basic-linux.x64-11.2.0.4.0.zip -d /opt/oracle \
@@ -140,26 +140,26 @@ RUN unzip /tmp/instantclient-basic-linux.x64-11.2.0.4.0.zip -d /opt/oracle \
 
 # Install solr extension.
 RUN printf "\n" | pecl install solr \
- && echo 'extension=solr.so' > /etc/php/7.0/apache2/conf.d/solr.ini \
- && echo 'extension=solr.so' > /etc/php/7.0/cli/conf.d/solr.ini
+ && echo 'extension=solr.so' > /etc/php/7.1/apache2/conf.d/solr.ini \
+ && echo 'extension=solr.so' > /etc/php/7.1/cli/conf.d/solr.ini
 
 # Install oracle extension.
 RUN pecl install oci8-2.1.1 </tmp/anwser-install-oci8.txt \
- && echo "extension=oci8.so" >> /etc/php/7.0/apache2/conf.d/oci8.ini \
- && echo "oci8.statement_cache_size=0" >> /etc/php/7.0/apache2/conf.d/oci8.ini \
- && echo "extension=oci8.so" >> /etc/php/7.0/cli/conf.d/oci8.ini \
- && echo "oci8.statement_cache_size=0" >> /etc/php/7.0/cli/conf.d/oci8.ini
+ && echo "extension=oci8.so" >> /etc/php/7.1/apache2/conf.d/oci8.ini \
+ && echo "oci8.statement_cache_size=0" >> /etc/php/7.1/apache2/conf.d/oci8.ini \
+ && echo "extension=oci8.so" >> /etc/php/7.1/cli/conf.d/oci8.ini \
+ && echo "oci8.statement_cache_size=0" >> /etc/php/7.1/cli/conf.d/oci8.ini
 
-# Install redis extension.
-RUN pecl install redis \
- && echo 'extension=redis.so' > /etc/php/7.0/apache2/conf.d/redis.ini \
- && echo 'extension=redis.so' > /etc/php/7.0/cli/conf.d/redis.ini
+# Install redis extension. NOT YET SUPPORTED.
+#RUN pecl install redis \
+# && echo 'extension=redis.so' > /etc/php/7.1/apache2/conf.d/redis.ini \
+# && echo 'extension=redis.so' > /etc/php/7.1/cli/conf.d/redis.ini
 
 # APCU
-RUN echo 'apc.enabled=1' >> /etc/php/7.0/cli/conf.d/apcu.ini \
- && echo 'apc.enable_cli=1' >> /etc/php/7.0/cli/conf.d/apcu.ini \
- && echo 'apc.enabled=1' >> /etc/php/7.0/apache2/conf.d/apcu.ini \
- && echo 'apc.enable_cli=1' >> /etc/php/7.0/apache2/conf.d/apcu.ini
+RUN echo 'apc.enabled=1' >> /etc/php/7.1/cli/conf.d/apcu.ini \
+ && echo 'apc.enable_cli=1' >> /etc/php/7.1/cli/conf.d/apcu.ini \
+ && echo 'apc.enabled=1' >> /etc/php/7.1/apache2/conf.d/apcu.ini \
+ && echo 'apc.enable_cli=1' >> /etc/php/7.1/apache2/conf.d/apcu.ini
 
 # Limit memory usage by docker for stability.
 CMD ulimit -n 1536
