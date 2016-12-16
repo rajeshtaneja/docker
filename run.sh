@@ -7,6 +7,7 @@ ROOT_DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 DEFAULT_SELENIUM_DOCKER="rajeshtaneja/selenium:2.53.1"
 DEFAULT_DOCKER_PHP_VERSION="7.0"
 DB_DOCKER_TO_START_CMD='docker run -e POSTGRES_USER=moodle -e POSTGRES_PASSWORD=moodle -e POSTGRES_DB=moodle -d postgres'
+SUPPORTED_PHP_VERSIONS=("5.4" "5.5" "5.6" "7.0" "7.1")
 
 # Optional parameters if set here then don't need to pass via command line.
 # Command line will be given preference.

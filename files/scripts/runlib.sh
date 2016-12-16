@@ -239,23 +239,22 @@ get_php_version_to_use() {
     fi
 
     # Check if version passed is correct.
-    supportedVersions=("5.4" "5.5" "5.6" "7.0")
-    for version in "${supportedVersions[@]}"; do
+    for version in "${SUPPORTED_PHP_VERSIONS[@]}"; do
         if [ "$version" == "$1" ] ; then
             return 0
         fi
     done
     # If exact match is not found then check partial check.
-    for version in "${supportedVersions[@]}"; do
+    for version in "${SUPPORTED_PHP_VERSIONS[@]}"; do
         if [[ "$version" == "$1"* ]] ; then
             PHP_VERSION=$version
             return 0
         fi
     done
 
-    # If nothing found then use default version 7.0.4
-    echo "Docker instance for required php version '$1' is not yet supported, using 7.0.4"
-    PHP_VERSION="7.0.4"
+    # If nothing found then use default version DEFAULT_DOCKER_PHP_VERSION
+    echo "Docker instance for required php version '$1' is not yet supported, using $DEFAULT_DOCKER_PHP_VERSION"
+    PHP_VERSION=$DEFAULT_DOCKER_PHP_VERSION
     return 1
 }
 
