@@ -594,7 +594,7 @@ start_php_server_and_run_test() {
         EXITCODE=$?
     elif [ "$TEST_TO_EXECUTE" == "phpunit" ]; then
         cmd="docker run ${dockerrunmode} --rm --user=${DOCKER_USER} --name ${PHP_DOCKER_NAME} \
-            -v ${MOODLE_PATH}/:${DOCKER_MOODLE_PATH} ${DOCKER_DATA_MAP} ${LINK_DB} ${PHP_SERVER_DOCKER} /scripts/phpunit.sh $passdbhost $ORGINIAL_USER_OPTS"
+            -v ${MOODLE_PATH}/:${DOCKER_MOODLE_PATH} ${DOCKER_FAIL_DUMP_MAP} ${DOCKER_DATA_MAP} ${LINK_DB} ${PHP_SERVER_DOCKER} /scripts/phpunit.sh $passdbhost $ORGINIAL_USER_OPTS"
 
         log "Executing: $cmd"
         eval $cmd
