@@ -209,6 +209,7 @@ RUN echo '%moodle  ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 
 # Create volumes to share faildump.
 VOLUME ["/shared"]
+VOLUME ["/shared_data"]
 
 # Expose port on which web server is accessible.
 EXPOSE 80

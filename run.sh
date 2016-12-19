@@ -4,10 +4,27 @@
 ROOT_DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 
 # Default params which can be overridden by options.
-DEFAULT_SELENIUM_DOCKER="rajeshtaneja/selenium:2.53.1"
-DEFAULT_DOCKER_PHP_VERSION="7.0"
-DB_DOCKER_TO_START_CMD='docker run -e POSTGRES_USER=moodle -e POSTGRES_PASSWORD=moodle -e POSTGRES_DB=moodle -d postgres'
-SUPPORTED_PHP_VERSIONS=("5.4" "5.5" "5.6" "7.0" "7.1")
+if [ -z "$DEFAULT_SELENIUM_DOCKER" ]; then
+    DEFAULT_SELENIUM_DOCKER="rajeshtaneja/selenium:2.53.1"
+fi
+
+if [ -z "$DEFAULT_DOCKER_PHP_VERSION" ]; then
+    DEFAULT_DOCKER_PHP_VERSION="7.0"
+fi
+
+if [ -z "$DB_DOCKER_TO_START_CMD" ]; then
+    DB_DOCKER_TO_START_CMD='docker run -e POSTGRES_USER=moodle -e POSTGRES_PASSWORD=moodle -e POSTGRES_DB=moodle -d postgres'
+fi
+
+# Supported php versions. We have following docker instances.
+if [ -z "$SUPPORTED_PHP_VERSIONS" ]; then
+    SUPPORTED_PHP_VERSIONS=("5.4" "5.5" "5.6" "7.0" "7.1")
+fi
+
+# Wait after docker instance is created. This is needed to ensure instance is fully created.
+if [ -z "$WAIT_AFTER_DOCKER_INSTANCE_CREATED" ]; then
+    WAIT_AFTER_DOCKER_INSTANCE_CREATED=10
+fi
 
 # Optional parameters if set here then don't need to pass via command line.
 # Command line will be given preference.

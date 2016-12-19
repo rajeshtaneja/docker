@@ -290,7 +290,7 @@ create_pgsql_db_instance() {
     log "Starting postgres database instance"
     DOCKER_DB_INSTANCE=$(${DB_DOCKER_TO_START_CMD})
     # Wait for 5 seconds to ensure we have postgres docker initialized.
-    sleep 10
+    sleep $WAIT_AFTER_DOCKER_INSTANCE_CREATED
 
     LINK_DB="--link ${DOCKER_DB_INSTANCE}:DB"
 
@@ -311,7 +311,7 @@ create_mysqli_db_instance() {
     DB_DOCKER_TO_START_CMD='docker run -e  MYSQL_ROOT_PASSWORD=moodle -e MYSQL_DATABASE=moodle -e MYSQL_USER=moodle -e MYSQL_PASSWORD=moodle -d mysql/mysql-server:latest'
     DOCKER_DB_INSTANCE=$(${DB_DOCKER_TO_START_CMD})
     # Wait for 10 seconds to ensure we have postgres docker initialized.
-    sleep 10
+    sleep $WAIT_AFTER_DOCKER_INSTANCE_CREATED
     # Check if db is ready.
     test=$(docker exec $DOCKER_DB_INSTANCE mysql -uroot -pmoodle -e 'SHOW databases;')
     if [ $? -ne 0 ]; then
@@ -343,7 +343,7 @@ create_mariadb_db_instance() {
     DB_DOCKER_TO_START_CMD='docker run -e  MYSQL_ROOT_PASSWORD=moodle -e MYSQL_DATABASE=moodle -e MYSQL_USER=moodle -e MYSQL_PASSWORD=moodle -d mariadb:latest'
     DOCKER_DB_INSTANCE=$(${DB_DOCKER_TO_START_CMD})
     # Wait for 10 seconds to ensure we have postgres docker initialized.
-    sleep 10
+    sleep $WAIT_AFTER_DOCKER_INSTANCE_CREATED
     # Check if db is ready.
     test=$(docker exec $DOCKER_DB_INSTANCE mysql -uroot -pmoodle -e 'SHOW databases;')
     if [ $? -ne 0 ]; then
@@ -375,7 +375,7 @@ create_oci_db_instance() {
     DB_DOCKER_TO_START_CMD='docker run -d -e ORACLE_ALLOW_REMOTE=true rajeshtaneja/oracle-xe-11g'
     DOCKER_DB_INSTANCE=$(${DB_DOCKER_TO_START_CMD})
     # Wait for 5 seconds to ensure we have postgres docker initialized.
-    sleep 5
+    sleep $WAIT_AFTER_DOCKER_INSTANCE_CREATED
 
     LINK_DB="--link ${DOCKER_DB_INSTANCE}:DB"
 
@@ -397,7 +397,7 @@ create_sqlsrv_db_instance() {
     DB_DOCKER_TO_START_CMD='docker run -e ACCEPT_EULA=Y -e SA_PASSWORD=Passw0rd! -d microsoft/mssql-server-linux'
     DOCKER_DB_INSTANCE=$(${DB_DOCKER_TO_START_CMD})
     # Wait for 20 seconds to ensure we have postgres docker initialized.
-    sleep 20
+    sleep $WAIT_AFTER_DOCKER_INSTANCE_CREATED
     TEST=sqlcmd -S $DBHOST -U SA -P 'Passw0rd!'
 
     LINK_DB="--link ${DOCKER_DB_INSTANCE}:DB"
