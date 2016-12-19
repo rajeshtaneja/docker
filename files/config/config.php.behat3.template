@@ -79,21 +79,21 @@ $basicbehatprofiles = array(
 
 // If only one selenium url passed, then set it as default profile url.
 if (count($urls) == 1) {
-    $basicbehatprofiles = array(
-        'default' => array(
+    $basicbehatprofiles['default'] = array(
            'browser' => 'firefox',
            'wd_host' => 'http://'.$urls[0].'/wd/hub'
-        )
     );
 }
 
 $counter = 0;
 for ($i = %%fromrun%%; $i < %%totalrun%%; $i++) {
-    $CFG->behat_parallel_run[$i] = array ('wd_host' => 'http://'.$urls[$counter].'/wd/hub');
-    $counter++;
+    $CFG->behat_parallel_run[$i-1] = array ('wd_host' => 'http://'.$urls[$counter].'/wd/hub');
+    if (!empty($urls[$counter+1])) {
+        $counter++;
+    }
 }
 
-$noofprofilestocreate = 50;
+$noofprofilestocreate = %%totalrun%%;
 // Create multiple profiles, so they can be used in parallelrun --rerun
 $CFG->behat_profiles = $basicbehatprofiles;
 for ($i = 1; $i <= $noofprofilestocreate; $i++) {

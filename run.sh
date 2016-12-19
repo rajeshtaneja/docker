@@ -23,7 +23,7 @@ fi
 
 # Wait after docker instance is created. This is needed to ensure instance is fully created.
 if [ -z "$WAIT_AFTER_DOCKER_INSTANCE_CREATED" ]; then
-    WAIT_AFTER_DOCKER_INSTANCE_CREATED=10
+    WAIT_AFTER_DOCKER_INSTANCE_CREATED=20
 fi
 
 # Optional parameters if set here then don't need to pass via command line.

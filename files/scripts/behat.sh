@@ -272,7 +272,14 @@ function run_behat() {
             BEHAT_PROFILE="${BEHAT_PROFILE}{runprocess}"
         fi
         CMD="php admin/tool/behat/cli/run.php $BEHAT_FORMAT $BEHAT_OUTPUT $FROMRUN $TORUN -p=$BEHAT_PROFILE $BEHAT_TAGS $STOP_ON_FAIL $BEHAT_NAME $BEHAT_FEATURE $BEHAT_SUITE_TO_USE"
+        if [ -n "$LOG_JUNIT" ]; then
+            CMD="${CMD} --format=junit --out=${LOG_JUNIT}"
+        fi
     else
+        if [ -n "$LOG_JUNIT" ]; then
+            BEHAT_FORMAT="${BEHAT_FORMAT},junit"
+            BEHAT_OUTPUT="${BEHAT_OUTPUT},${LOG_JUNIT}"
+        fi
         CMD="php admin/tool/behat/cli/run.php --rerun=\"${RERUN_FILE_TO_USE}.txt\" $BEHAT_FORMAT $BEHAT_OUTPUT $FROMRUN $TORUN -p=$BEHAT_PROFILE $BEHAT_TAGS $STOP_ON_FAIL $BEHAT_NAME $BEHAT_FEATURE $BEHAT_SUITE_TO_USE"
     fi
 

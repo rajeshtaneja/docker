@@ -7,7 +7,7 @@ function get_user_options() {
     local currentdir=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 
     ORGINIAL_USER_OPTS="$@"
-    OPTS=`getopt -o j::r::p::t::f::n::h --long git::,remote::,branch::,dbhost::,dbtype::,dbname::,dbuser::,dbpass::,dbprefix::,dbport::,profile::,behatdbprefix::,seleniumurl::,run::,totalruns::,tags::,feature::,suite::,name::,phpunitdbprefix::,filter::,test::,execute::,moodlepath::,phpversion::,phpdocker::,seleniumdocker::,dbdockercmd::,shareddir::,shareddatadir::,user::,behathelp,phpunithelp,usehostcode,verbose,noninteractive,noselenium,help,stoponfail,onlysetup,nocourse,forcedrop,logjunit -- $ORGINIAL_USER_OPTS`
+    OPTS=`getopt -o j::r::p::t::f::n::h --long git::,remote::,branch::,dbhost::,dbtype::,dbname::,dbuser::,dbpass::,dbprefix::,dbport::,profile::,behatdbprefix::,seleniumurl::,run::,totalruns::,tags::,feature::,suite::,name::,phpunitdbprefix::,filter::,test::,execute::,moodlepath::,phpversion::,phpdocker::,seleniumdocker::,dbdockercmd::,shareddir::,shareddatadir::,user::,logjunit::,behathelp,phpunithelp,usehostcode,verbose,noninteractive,noselenium,help,stoponfail,onlysetup,nocourse,forcedrop -- $ORGINIAL_USER_OPTS`
 
     if [ $? != 0 ]
     then
@@ -520,8 +520,14 @@ start_php_server_and_run_test() {
 
     # Docker name to use for php docker instance. We need this as it can be run in a process.
     local randominstance=$(( ( RANDOM % 100 )  + 1 ))
+    if [ -z "$BEHAT_PROFILE" ]; then
+        BEHAT_PROFILE="firefox"
+    fi
+    if [ -n "$BEHAT_SUITE" ]; then
+        BEHAT_SUITE="_${BEHAT_SUITE}"
+    fi
     if [ "$TEST_TO_EXECUTE" == "behat" ]; then
-        PHP_DOCKER_NAME=$(echo "${MOODLE_PATH}_${TEST_TO_EXECUTE}_${MOODLE_BRANCH}_${BEHAT_PROFILE}_${BEHAT_RUN}_${randominstance}" | sed 's,/,_,g' | sed 's/_//1')
+        PHP_DOCKER_NAME=$(echo "${MOODLE_PATH}_${TEST_TO_EXECUTE}_${MOODLE_BRANCH}_${BEHAT_PROFILE}${BEHAT_SUITE}_${BEHAT_RUN}_${randominstance}" | sed 's,/,_,g' | sed 's/_//1')
     elif [ "$TEST_TO_EXECUTE" == "phpunit" ]; then
         PHP_DOCKER_NAME=$(echo "${MOODLE_PATH}_${TEST_TO_EXECUTE}_${MOODLE_BRANCH}_${DBTYPE}_${randominstance}" | sed 's,/,_,g' | sed 's/_//1')
     elif [ "$TEST_TO_EXECUTE" == "moodle" ]; then

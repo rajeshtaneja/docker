@@ -128,8 +128,10 @@ if (count($urls) == 1) {
 
 $counter = 0;
 for ($i = %%fromrun%%; $i < %%totalrun%%; $i++) {
-    $CFG->behat_parallel_run[$i] = array ('wd_host' => 'http://'.$urls[$counter].'/wd/hub');
-    $counter++;
+    $CFG->behat_parallel_run[$i-1] = array ('wd_host' => 'http://'.$urls[$counter].'/wd/hub');
+    if (!empty($urls[$counter+1])) {
+        $counter++;
+    }
 }
 
 $CFG->directorypermissions = 0777;
