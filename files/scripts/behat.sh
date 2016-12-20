@@ -116,7 +116,7 @@ function set_behat_run_env() {
     fi
     if [ ! -d "$MOODLE_DATA_BASE_DIR" ]; then
         mkdir -p $MOODLE_DATA_BASE_DIR
-        chmod 777 -R $SHARED_DATA_DIR
+        chmod 777 -R $MOODLE_DATA_BASE_DIR
     fi
     if [ ! -d "$MOODLE_DATA_DIR" ]; then
         mkdir $MOODLE_DATA_DIR
