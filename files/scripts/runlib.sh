@@ -394,11 +394,22 @@ create_oci_db_instance() {
 # Create mysqli db instance
 create_sqlsrv_db_instance() {
     log "Starting $DBTYPE database instance"
+    if [ ! type sqlcmd > /dev/null ]; then
+        # install sqlcmd.
+        echo "###################### Error ###############################"
+        echo "## sqlcmd is not installed on host"
+        echo "## Install sqltools on host, so we can create db for testing"
+        echo "https://docs.microsoft.com/en-gb/sql/linux/sql-server-linux-setup-tools#ubuntu"
+        echo "##############################################################"
+    fi
     DB_DOCKER_TO_START_CMD='docker run -e ACCEPT_EULA=Y -e SA_PASSWORD=Passw0rd! -d microsoft/mssql-server-linux'
     DOCKER_DB_INSTANCE=$(${DB_DOCKER_TO_START_CMD})
     # Wait for 20 seconds to ensure we have postgres docker initialized.
     sleep $WAIT_AFTER_DOCKER_INSTANCE_CREATED
-    TEST=sqlcmd -S $DBHOST -U SA -P 'Passw0rd!'
+    sqlcmd -S $DBHOST -U SA -P 'Passw0rd!'
+    if [ $? -ne 0 ]; then
+        sleep 20
+    fi
 
     LINK_DB="--link ${DOCKER_DB_INSTANCE}:DB"
 
