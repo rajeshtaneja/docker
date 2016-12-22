@@ -103,9 +103,9 @@ EOF
 # Get user options.
 get_user_options "$@"
 
-create_db_instance
-
 create_selenium_instance
+
+create_db_instance
 
 update_composer_on_host
 

@@ -394,26 +394,28 @@ create_oci_db_instance() {
 # Create mysqli db instance
 create_sqlsrv_db_instance() {
     log "Starting $DBTYPE database instance"
-    if [ ! type sqlcmd > /dev/null ]; then
+    type sqlcmd > /dev/null
+    if [ $? -ne 0  ]; then
         # install sqlcmd.
         echo "###################### Error ###############################"
         echo "## sqlcmd is not installed on host"
         echo "## Install sqltools on host, so we can create db for testing"
         echo "https://docs.microsoft.com/en-gb/sql/linux/sql-server-linux-setup-tools#ubuntu"
         echo "##############################################################"
+        exit 1
     fi
     DB_DOCKER_TO_START_CMD='docker run -e ACCEPT_EULA=Y -e SA_PASSWORD=Passw0rd! -d microsoft/mssql-server-linux'
     DOCKER_DB_INSTANCE=$(${DB_DOCKER_TO_START_CMD})
     # Wait for 20 seconds to ensure we have postgres docker initialized.
     sleep $WAIT_AFTER_DOCKER_INSTANCE_CREATED
+    DBHOST=$(docker inspect -f "{{ .NetworkSettings.IPAddress }}" $DOCKER_DB_INSTANCE)
+
     sqlcmd -S $DBHOST -U SA -P 'Passw0rd!'
     if [ $? -ne 0 ]; then
         sleep 20
     fi
 
     LINK_DB="--link ${DOCKER_DB_INSTANCE}:DB"
-
-    DBHOST=$(docker inspect -f "{{ .NetworkSettings.IPAddress }}" $DOCKER_DB_INSTANCE)
     # IPAddress can be different with the way it is used on system, so grep it.
     if [ -z "$DBHOST" ] || [ "$DBHOST" == "" ]; then
         DBHOST=$(docker inspect $DOCKER_DB_INSTANCE | grep '"IPAddress": \+' | sed -rn '/([0-9]{1,3}\.){3}[0-9]{1,3}/p' | sed '$!d' | sed 's#.* "##' | sed 's#",##')
@@ -460,6 +462,7 @@ create_selenium_instance() {
     EXPOSE="--expose "
     PORTS=""
     addhyphen=0
+    sleeptime=5 # Wait for 5 sec, for each selenium instance.
     # If multiple behat runs, then create multiple selenium instances.
     if [[ -z ${BEHAT_RUN} ]]; then
         BEHAT_RUN="0" # Process number
@@ -477,12 +480,13 @@ create_selenium_instance() {
             addhyphen=$(($addhyphen+1))
             EXPOSE="${EXPOSE}"$(($DRIVER_PORT+$i))
             PORTS="$PORTS "$(($DRIVER_PORT+$i))
+            sleeptime=$(($sleeptime+5))
         done
     else
         EXPOSE=${EXPOSE}${DRIVER_PORT}
         PORTS=$DRIVER_PORT
     fi
-
+    sleeptime=$(($sleeptime+5))
     # Start phantomjs instance.
     if [ -z "$SELENIUM_DOCKER" ]; then
         log "Starting $DEFAULT_SELENIUM_DOCKER"
@@ -510,8 +514,8 @@ create_selenium_instance() {
 
     SELENIUMURL=${SELENIUMURL::-1}
     log "Selenium url is $SELENIUMURL"
-    # Wait for 5 seconds to ensure we have selenium docker initialized.
-    sleep 5
+    # Wait for 5 seconds for each instance to ensure we have selenium docker initialized.
+    sleep $sleeptime
 }
 
 start_php_server_and_run_test() {

@@ -1,15 +1,14 @@
 #!/bin/bash
 
-# Get all exited docker instances.
-docker ps -a | grep "Exited" | awk '{print $1}' | sed 's/ //' > ~/dockerexit.txt
+if [ -n "$1" ] && [ "$1" = "all" ]; then
+    # Stop all running docker instances.
+    docker stop $(docker ps -aq) > /dev/null 2>&1
+    docker rm $(docker ps -aq) > /dev/null 2>&1
+else
+    # Remove stopped + exited containers, which skipped Exit as jenkins job might have been stopped and not removed container.
+    docker rm -v $(docker ps -a -q -f status=exited) > /dev/null 2>&1
+    docker rm -v $(docker ps -a -q -f status=created) > /dev/null 2>&1
+fi
 
-# Run though all and remove them
-IFS='
-'
-exec 4<~/dockerexit.txt           # opening  file via descriptor
-while read DOCKERID <&4; do
- docker rm $DOCKERID
-done
-
-# Remove the file
-rm ~/dockerexit.txt
+# Clean up any unused volumes.
+docker rmi $(docker images -f "dangling=true" -q) > /dev/null 2>&1
