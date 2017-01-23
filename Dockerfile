@@ -165,9 +165,6 @@ RUN echo 'apc.enabled=1' >> /etc/php/7.0/cli/conf.d/apcu.ini \
 # Limit memory usage by docker for stability.
 CMD ulimit -n 1536
 
-# Limit memory usage by docker for stability.
-CMD ulimit -n 1536
-
 WORKDIR /
 
 # COPY SCRIPTS and config.
