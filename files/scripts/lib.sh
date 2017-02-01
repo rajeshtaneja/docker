@@ -354,14 +354,26 @@ function set_moodle_config() {
 
     # If behat running then set ip to
     if [[ -z ${RUNNING_TEST} ]]; then
-        DOCKERIPWEB=$DOCKERIP
+        if [[ -z ${MAP_WEB_SERVER_PORT} ]]; then
+            DOCKERIPWEB=$DOCKERIP
+        else
+            DOCKERIPWEB="localhost:${MAP_WEB_SERVER_PORT}"
+        fi
         DOCKERIPBEHAT='127.0.0.1'
     elif [[ ${RUNNING_TEST} = 'phpunit' ]]; then
-        DOCKERIPWEB=$DOCKERIP
+        if [[ -z ${MAP_WEB_SERVER_PORT} ]]; then
+            DOCKERIPWEB=$DOCKERIP
+        else
+            DOCKERIPWEB="localhost:${MAP_WEB_SERVER_PORT}"
+        fi
         DOCKERIPBEHAT='127.0.0.1'
     else
         DOCKERIPWEB='127.0.0.1'
-        DOCKERIPBEHAT=$DOCKERIP
+        if [[ -z ${MAP_WEB_SERVER_PORT} ]]; then
+            DOCKERIPBEHAT=$DOCKERIP
+        else
+            DOCKERIPBEHAT="localhost:${MAP_WEB_SERVER_PORT}"
+        fi
     fi
 
   # Copying from config template.

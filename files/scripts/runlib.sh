@@ -7,7 +7,7 @@ function get_user_options() {
     local currentdir=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 
     ORGINIAL_USER_OPTS="$@"
-    OPTS=`getopt -o j::r::p::t::f::n::h --long git::,remote::,branch::,dbhost::,dbtype::,dbname::,dbuser::,dbpass::,dbprefix::,dbport::,profile::,behatdbprefix::,seleniumurl::,run::,totalruns::,tags::,feature::,suite::,name::,phpunitdbprefix::,filter::,test::,execute::,moodlepath::,phpversion::,phpdocker::,seleniumdocker::,dbdockercmd::,shareddir::,shareddatadir::,user::,logjunit::,behathelp,phpunithelp,usehostcode,verbose,noninteractive,noselenium,help,stoponfail,onlysetup,nocourse,forcedrop -- $ORGINIAL_USER_OPTS`
+    OPTS=`getopt -o j::r::p::t::f::n::h --long mapport::,git::,remote::,branch::,dbhost::,dbtype::,dbname::,dbuser::,dbpass::,dbprefix::,dbport::,profile::,behatdbprefix::,seleniumurl::,run::,totalruns::,tags::,feature::,suite::,name::,phpunitdbprefix::,filter::,test::,execute::,moodlepath::,phpversion::,phpdocker::,seleniumdocker::,dbdockercmd::,shareddir::,shareddatadir::,user::,logjunit::,behathelp,phpunithelp,usehostcode,verbose,noninteractive,noselenium,help,stoponfail,onlysetup,nocourse,forcedrop -- $ORGINIAL_USER_OPTS`
 
     if [ $? != 0 ]
     then
@@ -29,7 +29,7 @@ function get_user_options() {
                 shift ;;
             --behathelp) ${currentdir}/behat.sh --help; shift ;;
             --phpunithelp) ${currentdir}/phpunit.sh --help; shift ;;
-            --usehostcode) DOCKER_MOODLE_PATH=1; shift ;;
+            --usehostcode) DOCKER_USE_HOST_CODE=1; shift ;;
             --verbose) SHOW_VERBOSE=1; shift ;;
             --noninteractive) NON_INTERACTIVE=1; shift ;;
             --noselenium) NO_SELENIUM=1; shift ;;
@@ -55,6 +55,10 @@ function get_user_options() {
             --seleniumdocker)
                 case "$2" in
                     *) SELENIUM_DOCKER=$2 ; shift 2 ;;
+                esac ;;
+            --mapport)
+                case "$2" in
+                    *) MAP_WEB_SERVER_PORT=$2 ; shift 2 ;;
                 esac ;;
             --dbdockercmd)
                 case "$2" in
@@ -594,13 +598,18 @@ start_php_server_and_run_test() {
         fi
     fi
 
+    MAP_PORT=""
+    if [ -n "$MAP_WEB_SERVER_PORT" ]; then
+        MAP_PORT="-p ${MAP_WEB_SERVER_PORT}:80 "
+    fi
+
     local dockerrunmode="-ti"
     if [ -n "$NON_INTERACTIVE" ]; then
         dockerrunmode="-i"
     fi
 
     if [ "$TEST_TO_EXECUTE" == "behat" ]; then
-        cmd="docker run ${dockerrunmode} --rm --user=${DOCKER_USER} --name ${PHP_DOCKER_NAME} \
+        cmd="docker run ${MAP_PORT}${dockerrunmode} --rm --user=${DOCKER_USER} --name ${PHP_DOCKER_NAME} \
             -v ${MOODLE_PATH}/:${DOCKER_MOODLE_PATH} ${DOCKER_FAIL_DUMP_MAP} ${DOCKER_DATA_MAP} ${LINK_SELENIUM}  ${LINK_DB}\
             ${PHP_SERVER_DOCKER} /scripts/behat.sh $passdbhost $SELENIUMURL $ORGINIAL_USER_OPTS"
 
@@ -608,14 +617,14 @@ start_php_server_and_run_test() {
         eval $cmd
         EXITCODE=$?
     elif [ "$TEST_TO_EXECUTE" == "phpunit" ]; then
-        cmd="docker run ${dockerrunmode} --rm --user=${DOCKER_USER} --name ${PHP_DOCKER_NAME} \
+        cmd="docker run ${MAP_PORT}${dockerrunmode} --rm --user=${DOCKER_USER} --name ${PHP_DOCKER_NAME} \
             -v ${MOODLE_PATH}/:${DOCKER_MOODLE_PATH} ${DOCKER_FAIL_DUMP_MAP} ${DOCKER_DATA_MAP} ${LINK_DB} ${PHP_SERVER_DOCKER} /scripts/phpunit.sh $passdbhost $ORGINIAL_USER_OPTS"
 
         log "Executing: $cmd"
         eval $cmd
         EXITCODE=$?
     else
-        cmd="docker run ${dockerrunmode} --rm --user=${DOCKER_USER} --name ${PHP_DOCKER_NAME}"
+        cmd="docker run ${MAP_PORT}${dockerrunmode} --rm --user=${DOCKER_USER} --name ${PHP_DOCKER_NAME}"
         cmd="$cmd -v ${MOODLE_PATH}/:${DOCKER_MOODLE_PATH} ${DOCKER_FAIL_DUMP_MAP} ${DOCKER_DATA_MAP} ${LINK_SELENIUM} ${LINK_DB}"
         cmd="$cmd ${PHP_SERVER_DOCKER} /scripts/moodle.sh $passdbhost $SELENIUMURL $ORGINIAL_USER_OPTS"
 

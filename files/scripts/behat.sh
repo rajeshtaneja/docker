@@ -299,7 +299,47 @@ function run_behat() {
         echo "!!!---Last exit code is ${exitcode}. Trying failed runs again to remove random failures.---!!!"
         echo "----------------------------------------------------------------------------------------------"
         # Re-run failed scenarios, to ensure they are true fails.
-        if [ "$MOODLE_VERSION" -ge "31" ]; then
+        if [ "$MOODLE_VERSION" -ge "32" ]; then
+            # If we are running 1 run single or specified then don't need to check for each run.
+            if [ -n "$SPECIFIED_RUN" ] || [ -n "$SINGLE_PROCESS" ]; then
+                # If single process then no suffix needed.
+                if [ -z "$SPECIFIED_RUN" ]; then
+                    BEHAT_RUN=""
+                else
+                    if [ ! -L $MOODLE_DIR/behatrun${BEHAT_RUN} ]; then
+                        ln -s $MOODLE_DIR $MOODLE_DIR/behatrun${BEHAT_RUN}
+                    fi
+                fi
+                echo "---Running behat Process ${BEHAT_RUN} again for failed steps---"
+                CMD="vendor/bin/behat --config $MOODLE_BEHAT_DATA_DIR/behatrun${BEHAT_RUN}/behat/behat.yml $BEHAT_FORMAT $BEHAT_OUTPUT -p=${BEHAT_PROFILE_ORG}${BEHAT_RUN} $BEHAT_TAGS $BEHAT_NAME $BEHAT_FEATURE $BEHAT_SUITE_TO_USE --verbose --rerun"
+                log "$CMD"
+                eval $CMD
+                newexitcode=$(($newexitcode+${PIPESTATUS[0]}))
+                if [ -L $MOODLE_DIR/behatrun${BEHAT_RUN} ]; then
+                    rm $MOODLE_DIR/behatrun${BEHAT_RUN}
+                fi
+            else
+                newexitcode=0
+                for ((i=1;i<=$BEHAT_TOTAL_RUNS;i+=1)); do
+                    status=$((1 << $i-1))
+                    CURRENTRUNEXITCODE=$(($status & $exitcode))
+                    if [ $CURRENTRUNEXITCODE -ne 0 ]; then
+                        echo "---Running behat Process ${i} again for failed steps---"
+                        if [ ! -L $MOODLE_DIR/behatrun$i ]; then
+                            ln -s $MOODLE_DIR $MOODLE_DIR/behatrun$i
+                        fi
+                        sleep 5
+                        CMD="vendor/bin/behat --config $MOODLE_BEHAT_DATA_DIR/behatrun${i}/behat/behat.yml $BEHAT_FORMAT $BEHAT_OUTPUT -p=${BEHAT_PROFILE_ORG}${i} $BEHAT_TAGS $BEHAT_NAME $BEHAT_FEATURE $BEHAT_SUITE_TO_USE --verbose --rerun"
+                        log "$CMD"
+                        eval $CMD
+                        newexitcode=$(($newexitcode+${PIPESTATUS[0]}))
+                        if [ -L $MOODLE_DIR/behatrun$i ]; then
+                            rm $MOODLE_DIR/behatrun$i
+                        fi
+                    fi
+                done;
+            fi
+        elif [ "$MOODLE_VERSION" -eq "31" ]; then
             # If we are running 1 run single or specified then don't need to check for each run.
             if [ -n "$SPECIFIED_RUN" ] || [ -n "$SINGLE_PROCESS" ]; then
                 # If single process then no suffix needed.
