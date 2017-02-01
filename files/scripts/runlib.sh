@@ -7,7 +7,7 @@ function get_user_options() {
     local currentdir=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 
     ORGINIAL_USER_OPTS="$@"
-    OPTS=`getopt -o j::r::p::t::f::n::h --long mapport::,git::,remote::,branch::,dbhost::,dbtype::,dbname::,dbuser::,dbpass::,dbprefix::,dbport::,profile::,behatdbprefix::,seleniumurl::,run::,totalruns::,tags::,feature::,suite::,name::,phpunitdbprefix::,filter::,test::,execute::,moodlepath::,phpversion::,phpdocker::,seleniumdocker::,dbdockercmd::,shareddir::,shareddatadir::,user::,logjunit::,behathelp,phpunithelp,usehostcode,verbose,noninteractive,noselenium,help,stoponfail,onlysetup,nocourse,forcedrop -- $ORGINIAL_USER_OPTS`
+    OPTS=`getopt -o j::r::p::t::f::n::h --long mapport::,git::,remote::,branch::,dbhost::,dbtype::,dbname::,dbuser::,dbpass::,dbprefix::,dbport::,profile::,behatdbprefix::,seleniumurl::,run::,totalruns::,tags::,feature::,suite::,name::,phpunitdbprefix::,filter::,test::,execute::,moodlepath::,phpversion::,phpdocker::,seleniumdocker::,dbdockercmd::,shareddir::,shareddatadir::,user::,logjunit::,behathelp,phpunithelp,usehostcode,verbose,noninteractive,noselenium,help,stoponfail,onlysetup,nocourse,forcedrop,usemultipleseleniumports -- $ORGINIAL_USER_OPTS`
 
     if [ $? != 0 ]
     then
@@ -35,6 +35,7 @@ function get_user_options() {
             --noselenium) NO_SELENIUM=1; shift ;;
             --nocourse) NO_COURSE=1; shift ;;
             --forcedrop) DROP_SITE=1; shift ;;
+            --usemultipleseleniumports) USE_MULTIPLE_SELENIUM_PORTS=1; shift ;;
             --execute)
                 case "$2" in
                     *) TEST_TO_EXECUTE=$2 ; shift 2 ;;
@@ -475,7 +476,7 @@ create_selenium_instance() {
         BEHAT_TOTAL_RUNS="1" # Total number of processes
     fi
 
-    if [[ "${BEHAT_RUN}" = "0" ]]; then
+    if [[ "${BEHAT_RUN}" = "0" ]] && [[ -n "$USE_MULTIPLE_SELENIUM_PORTS" ]]; then
         runs=$((${BEHAT_TOTAL_RUNS} - ${BEHAT_RUN}))
         for ((i=0;i<${runs};i+=1)); do
             if [ $addhyphen -gt 0 ]; then

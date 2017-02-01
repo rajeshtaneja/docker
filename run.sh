@@ -90,6 +90,9 @@ cat << EOF
 #   --noninteractive: Use this if running via script.                                      #
 #   --noselenium:  Don't attach selenium (when running moodle)                             #
 #   --forcedrop:   Drop test site before init. default it will just use init               #
+#   --usemultipleseleniumports: Use multiple selenium ports                                #
+#   --mapport:     Map web server port to specified port and webserver is accessed via     #
+#                  http://localhost:{mapport}/moodle                                       #
 #                                                                                          #
 ############################################################################################
 EOF
