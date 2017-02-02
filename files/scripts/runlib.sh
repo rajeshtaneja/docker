@@ -415,7 +415,7 @@ create_sqlsrv_db_instance() {
     sleep $WAIT_AFTER_DOCKER_INSTANCE_CREATED
     DBHOST=$(docker inspect -f "{{ .NetworkSettings.IPAddress }}" $DOCKER_DB_INSTANCE)
 
-    sqlcmd -S $DBHOST -U SA -P 'Passw0rd!'
+    sqlcmd -S $DBHOST -U SA -P 'Passw0rd!' -Q "select top(3) name from sys.objects" > /dev/null 2>&1
     if [ $? -ne 0 ]; then
         sleep 20
     fi
