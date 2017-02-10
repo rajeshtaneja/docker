@@ -99,7 +99,7 @@ EOF
     if [ -n "$1" ]; then
         exit $1
     else
-        exit 0
+        exit 1
     fi
 }
 

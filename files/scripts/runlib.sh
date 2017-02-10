@@ -609,6 +609,8 @@ start_php_server_and_run_test() {
         dockerrunmode="-i"
     fi
 
+    # Default exist code is 1.
+    EXITCODE=1
     if [ "$TEST_TO_EXECUTE" == "behat" ]; then
         cmd="docker run ${MAP_PORT}${dockerrunmode} --rm --user=${DOCKER_USER} --name ${PHP_DOCKER_NAME} \
             -v ${MOODLE_PATH}/:${DOCKER_MOODLE_PATH} ${DOCKER_FAIL_DUMP_MAP} ${DOCKER_DATA_MAP} ${LINK_SELENIUM}  ${LINK_DB}\
