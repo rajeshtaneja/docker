@@ -85,6 +85,8 @@ RUN apt-get remove -y freetds-* \
 
 # Replace original freetds.conf with our's, so we can update mssql server ip.
 COPY files/mssql/freetds.conf /etc/freetds/freetds.conf
+RUN rm /usr/local/etc/freetds.conf \
+  && ln -s /etc/freetds/freetds.conf /usr/local/etc/freetds.conf
 
 # Install oracle client.
 COPY files/oracle/instantclient-basic-linux.x64-11.2.0.4.0.zip /tmp/instantclient-basic-linux.x64-11.2.0.4.0.zip
@@ -167,7 +169,8 @@ RUN echo '%moodle  ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 # Remove copied packages.
 RUN rm /tmp/instantclient-basic-linux.x64-11.2.0.4.0.zip \
   && rm /tmp/instantclient-sdk-linux.x64-11.2.0.4.0.zip \
-  && rm /tmp/anwser-install-oci8.txt
+  && rm /tmp/anwser-install-oci8.txt \
+  && rm /tmp/freetds-patched.tar
 
 # Create volumes to share faildump.
 VOLUME ["/shared"]
