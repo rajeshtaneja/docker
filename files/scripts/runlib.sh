@@ -332,9 +332,21 @@ create_mysqli_db_instance() {
     fi
 
     # Set db to be used by moodle testing.
-    docker exec $DOCKER_DB_INSTANCE mysql -uroot -pmoodle -e 'ALTER DATABASE moodle DEFAULT CHARACTER SET utf8 COLLATE utf8_bin;'
-    docker exec $DOCKER_DB_INSTANCE mysql -uroot -pmoodle -e 'SET GLOBAL innodb_file_per_table=1;' moodle
+    # For moodle version < 31, we use utf8 charset and >= utf8mb4.
+    if [ ! -f "${MOODLE_PATH}/version.php" ]; then
+        echo "Moodle version.php can't be found to start mysql db at ${MOODLE_PATH}/version.php"
+        exit 1
+    fi
+
+    MOODLE_VERSION=$(grep "\$branch" ${MOODLE_PATH}/version.php | sed "s/';.*//" | sed "s/^\$.*'//")
+    if [[ "$MOODLE_VERSION" -lt "31" ]]; then
+        docker exec $DOCKER_DB_INSTANCE mysql -uroot -pmoodle -e 'ALTER DATABASE moodle DEFAULT CHARACTER SET utf8 COLLATE utf8_bin;'
+    else
+        docker exec $DOCKER_DB_INSTANCE mysql -uroot -pmoodle -e 'ALTER DATABASE moodle DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_bin;'
+    fi
+    docker exec $DOCKER_DB_INSTANCE mysql -uroot -pmoodle -e 'SET GLOBAL innodb_file_per_table=ON;' moodle
     docker exec $DOCKER_DB_INSTANCE mysql -uroot -pmoodle -e 'SET GLOBAL innodb_file_format=Barracuda;' moodle
+    docker exec $DOCKER_DB_INSTANCE mysql -uroot -pmoodle -e 'SET GLOBAL innodb_large_prefix=ON;' moodle
 
     DBNAME="moodle"
     DBUSER="moodle"
@@ -342,7 +354,7 @@ create_mysqli_db_instance() {
     log "Mysql DBHOST is $DBHOST"
 }
 
-# Create mysqli db instance
+# Create mariadb db instance
 create_mariadb_db_instance() {
     log "Starting Mariadb database instance"
     DB_DOCKER_TO_START_CMD='docker run -e  MYSQL_ROOT_PASSWORD=moodle -e MYSQL_DATABASE=moodle -e MYSQL_USER=moodle -e MYSQL_PASSWORD=moodle -d mariadb:latest'
@@ -364,9 +376,21 @@ create_mariadb_db_instance() {
     fi
 
     # Set db to be used by moodle testing.
-    docker exec $DOCKER_DB_INSTANCE mysql -uroot -pmoodle -e 'ALTER DATABASE moodle DEFAULT CHARACTER SET utf8 COLLATE utf8_bin;'
-    docker exec $DOCKER_DB_INSTANCE mysql -uroot -pmoodle -e 'SET GLOBAL innodb_file_per_table=1;' moodle
+    # For moodle version < 31, we use utf8 charset and >= utf8mb4.
+    if [ ! -f "${MOODLE_PATH}/version.php" ]; then
+        echo "Moodle version.php can't be found to start mysql db at ${MOODLE_PATH}/version.php"
+        exit 1
+    fi
+
+    MOODLE_VERSION=$(grep "\$branch" ${MOODLE_PATH}/version.php | sed "s/';.*//" | sed "s/^\$.*'//")
+    if [[ "$MOODLE_VERSION" -lt "31" ]]; then
+        docker exec $DOCKER_DB_INSTANCE mysql -uroot -pmoodle -e 'ALTER DATABASE moodle DEFAULT CHARACTER SET utf8 COLLATE utf8_bin;'
+    else
+        docker exec $DOCKER_DB_INSTANCE mysql -uroot -pmoodle -e 'ALTER DATABASE moodle DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_bin;'
+    fi
+    docker exec $DOCKER_DB_INSTANCE mysql -uroot -pmoodle -e 'SET GLOBAL innodb_file_per_table=ON;' moodle
     docker exec $DOCKER_DB_INSTANCE mysql -uroot -pmoodle -e 'SET GLOBAL innodb_file_format=Barracuda;' moodle
+    docker exec $DOCKER_DB_INSTANCE mysql -uroot -pmoodle -e 'SET GLOBAL innodb_large_prefix=ON;' moodle
 
     DBNAME="moodle"
     DBUSER="moodle"
@@ -374,7 +398,7 @@ create_mariadb_db_instance() {
     log "Mariadb DBHOST is $DBHOST"
 }
 
-# Create mysqli db instance
+# Create oracle db instance
 create_oci_db_instance() {
     log "Starting Oracle database instance"
     DB_DOCKER_TO_START_CMD='docker run -d -e ORACLE_ALLOW_REMOTE=true rajeshtaneja/oracle-xe-11g'
@@ -396,7 +420,7 @@ create_oci_db_instance() {
     log "Oracle DBHOST is $DBHOST"
 }
 
-# Create mysqli db instance
+# Create sqlsrv db instance
 create_sqlsrv_db_instance() {
     log "Starting $DBTYPE database instance"
     type sqlcmd > /dev/null

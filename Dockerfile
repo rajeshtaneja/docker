@@ -203,6 +203,11 @@ RUN ln -s /scripts/init.sh /init
 
 RUN echo '%moodle  ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 
+# Remove copied packages.
+RUN rm /tmp/instantclient-basic-linux.x64-11.2.0.4.0.zip \
+  && rm /tmp/instantclient-sdk-linux.x64-11.2.0.4.0.zip \
+  && rm /tmp/anwser-install-oci8.txt
+
 # Create volumes to share faildump.
 VOLUME ["/shared"]
 VOLUME ["/shared_data"]

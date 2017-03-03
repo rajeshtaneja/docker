@@ -275,12 +275,18 @@ function run_behat() {
         if [ -n "$LOG_JUNIT" ]; then
             CMD="${CMD} --format=junit --out=${LOG_JUNIT}"
         fi
-    else
+        elif [ "$MOODLE_VERSION" -ge "29" ]; then
         if [ -n "$LOG_JUNIT" ]; then
             BEHAT_FORMAT="${BEHAT_FORMAT},junit"
             BEHAT_OUTPUT="${BEHAT_OUTPUT},${LOG_JUNIT}"
         fi
         CMD="php admin/tool/behat/cli/run.php --rerun=\"${RERUN_FILE_TO_USE}.txt\" $BEHAT_FORMAT $BEHAT_OUTPUT $FROMRUN $TORUN -p=$BEHAT_PROFILE $BEHAT_TAGS $STOP_ON_FAIL $BEHAT_NAME $BEHAT_FEATURE $BEHAT_SUITE_TO_USE"
+    else
+        if [ -n "$LOG_JUNIT" ]; then
+            BEHAT_FORMAT="${BEHAT_FORMAT},junit"
+            BEHAT_OUTPUT="${BEHAT_OUTPUT},${LOG_JUNIT}"
+        fi
+        CMD="vendor/bin/behat --config $MOODLE_BEHAT_DATA_DIR/behat/behat.yml --rerun=\"${RERUN_FILE_TO_USE}.txt\" $BEHAT_FORMAT $BEHAT_OUTPUT -p=$BEHAT_PROFILE $BEHAT_TAGS $STOP_ON_FAIL $BEHAT_NAME $BEHAT_FEATURE $BEHAT_SUITE_TO_USE"
     fi
 
     log "$CMD"

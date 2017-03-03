@@ -37,6 +37,14 @@ $CFG->dboptions = array (
   'dbport' => '%%DbPort%%'
 );
 
+// Set this as this is needed to avoid an extra dbquery to find collation.
+// If you want to change it for your setup then add this to docker_env.php
+if ($CFG->dbtype == 'mysqli' || $CFG->dbtype == 'mariadb') {
+    $CFG->dboptions['dbcollation'] = 'utf8mb4_bin';
+} else if ($CFG->dbtype == 'sqlsrv' || $CFG->dbtype == 'mssql') {
+    $CFG->dboptions['dbcollation'] = 'LATIN1_GENERAL_CS_AS';
+}
+
 $CFG->wwwroot   = 'http://%%DockerContainerIp%%/moodle';
 $CFG->dataroot  = '%%DataDir%%';
 $CFG->admin     = 'admin';
