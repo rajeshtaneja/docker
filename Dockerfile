@@ -102,6 +102,10 @@ RUN ACCEPT_EULA=Y apt-get install -y mssql-tools \
 RUN apt-get clean \
  && rm -rf /var/lib/apt/lists/*
 
+ # Removed opcache till MDL-58169 is fixed.
+ RUN rm /etc/php/7.1/cli/conf.d/10-opcache.ini \
+   && rm /etc/php/7.1/apache2/conf.d/10-opcache.ini
+
 # Replace original freetds.conf with our's, so we can update mssql server ip.
 COPY files/mssql/freetds.conf /etc/freetds/freetds.conf
 
