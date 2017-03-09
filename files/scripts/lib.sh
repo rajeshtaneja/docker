@@ -355,9 +355,17 @@ function set_moodle_config() {
     # If behat running then set ip to
     if [[ -z ${RUNNING_TEST} ]]; then
         if [[ -z ${MAP_WEB_SERVER_PORT} ]]; then
-            DOCKERIPWEB=$DOCKERIP
+            if [ -z "${HOST_NAME}" ]; then
+                DOCKERIPWEB=$DOCKERIP
+            else
+                DOCKERIPWEB=${HOST_NAME}
+            fi
         else
-            DOCKERIPWEB="localhost:${MAP_WEB_SERVER_PORT}"
+            if [ -z "${HOST_NAME}" ]; then
+                DOCKERIPWEB="localhost:${MAP_WEB_SERVER_PORT}"
+            else
+                DOCKERIPWEB="${HOST_NAME}:${MAP_WEB_SERVER_PORT}"
+            fi
         fi
         DOCKERIPBEHAT='127.0.0.1'
     elif [[ ${RUNNING_TEST} = 'phpunit' ]]; then

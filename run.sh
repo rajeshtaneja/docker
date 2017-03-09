@@ -114,7 +114,13 @@ update_composer_on_host
 
 start_php_server_and_run_test
 
-stop_all_instances
+# If exit code is number then just exit. In case it's a moodle site it will be docker name.
+if [ "$EXITCODE" -eq "$EXITCODE" ] 2>/dev/null; then
+    stop_all_instances
 
-log "** Exit from run.sh is: $EXITCODE"
-exit $EXITCODE
+    log "** Exit from run.sh is: $EXITCODE"
+    exit $EXITCODE
+else
+    echo "${EXITCODE}"
+    exit 0
+fi

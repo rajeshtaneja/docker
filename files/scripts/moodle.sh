@@ -27,6 +27,7 @@ cat << EOF
 #   --git : (optional) git Repository                                                                #
 #   --remote: (optional) git remote                                                                  #
 #   --branch : (optional) Branch to use                                                              #
+#   --name : Name of host server if you want site to use this name.                                  #
 #   -h : Help                                                                                        #
 #                                                                                                    #
 ######################################################################################################

@@ -165,7 +165,7 @@ function get_user_options() {
             -n|--name)
                 case "$2" in
                     "") BEHAT_NAME="" ; shift 2 ;;
-                    *) BEHAT_NAME="--name=\"$2\"" ; shift 2 ;;
+                    *) BEHAT_NAME="--name=\"$2\"" && HOST_NAME=$2 ; shift 2 ;;
                 esac ;;
             --phpunitdbprefix)
                 case "$2" in
@@ -651,7 +651,13 @@ start_php_server_and_run_test() {
         eval $cmd
         EXITCODE=$?
     else
-        cmd="docker run ${MAP_PORT}${dockerrunmode} --rm --user=${DOCKER_USER} --name ${PHP_DOCKER_NAME}"
+        # If site is created then create it in demon mode.
+        if [ -n "${NON_INTERACTIVE}" ]; then
+            dockerrunmode="-d"
+        else
+            dockerrunmode="--rm -ti"
+        fi
+        cmd="docker run ${MAP_PORT}${dockerrunmode} --user=${DOCKER_USER} --name ${PHP_DOCKER_NAME}"
         cmd="$cmd -v ${MOODLE_PATH}/:${DOCKER_MOODLE_PATH} ${DOCKER_FAIL_DUMP_MAP} ${DOCKER_DATA_MAP} ${LINK_SELENIUM} ${LINK_DB}"
         cmd="$cmd ${PHP_SERVER_DOCKER} /scripts/moodle.sh $passdbhost $SELENIUMURL $ORGINIAL_USER_OPTS"
 
